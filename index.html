@@ -47,6 +47,7 @@
     const DEFAULT_SUPABASE_URL = "";
     const DEFAULT_SUPABASE_ANON_KEY = "";
 
+    // サンプル・デモ店舗
     const DEMO_STORES = [
       {
         id: "demo-store-1",
@@ -61,7 +62,7 @@
         gbpConnected: true,
         mapConnected: true,
         profileStrengthScore: 88,
-        lastSync: "2026-10-28 09:30",
+        lastSync: "2026-10-28 09:30（デモデータ）",
         keywords: [
           {
             id: "kw-1",
@@ -71,36 +72,145 @@
             prevRank: 3.8,
             pins: [
               { id: 1, area: "JR岐阜駅北口", top: "46%", left: "44%", rank: 1 },
-              { id: 2, area: "名鉄岐阜駅前", top: "42%", left: "58%", rank: 1 }
+              { id: 2, area: "名鉄岐阜駅前", top: "42%", left: "58%", rank: 1 },
+              { id: 3, area: "柳ヶ瀬エリア", top: "25%", left: "50%", rank: 2 },
+              { id: 4, area: "加納エリア", top: "70%", left: "48%", rank: 2 },
+              { id: 5, area: "金華橋通り", top: "32%", left: "35%", rank: 3 }
             ]
           }
         ],
         profileScores: [
-          { id: "s1", label: "基本情報・カテゴリ設定", score: 95, color: "bg-emerald-400", note: "設定済" },
-          { id: "s2", label: "営業時間・特別営業時間", score: 80, color: "bg-amber-400", note: "確認中" }
+          { id: "s1", label: "基本情報・カテゴリ設定", score: 95, color: "bg-emerald-400", note: "主/副カテゴリ設定済" },
+          { id: "s2", label: "営業時間・特別営業時間", score: 80, color: "bg-amber-400", note: "11月の祝日未設定" },
+          { id: "s3", label: "写真・院内画像の充実度", score: 88, color: "bg-cyan-400", note: "計34枚登録" },
+          { id: "s4", label: "サービス・メニュー登録", score: 90, color: "bg-blue-500", note: "主要8コース登録済" }
         ],
         tasks: [
-          { id: "t1", title: "未返信の口コミ返信確認", priority: "高", done: false }
+          { id: "t1", title: "未返信の口コミ3件への返信作成・投稿", priority: "高", done: false },
+          { id: "t2", title: "11月の特別営業時間をGBPに設定", priority: "高", done: false }
         ],
         reviews: {
-          avg: 4.7, total: 128, newCount: 11, replied: 125, unreplied: 3, replyRate: 98, positiveRate: 94,
-          dist: [{ star: "★5", pct: 75, count: 96, color: "bg-emerald-400" }]
+          avg: 4.7,
+          total: 128,
+          newCount: 11,
+          replied: 125,
+          unreplied: 3,
+          replyRate: 98,
+          positiveRate: 94,
+          dist: [
+            { star: "★5", pct: 75, count: 96, color: "bg-emerald-400" },
+            { star: "★4", pct: 19, count: 24, color: "bg-cyan-400" },
+            { star: "★3", pct: 4, count: 5, color: "bg-blue-400" },
+            { star: "★2", pct: 1, count: 2, color: "bg-amber-400" },
+            { star: "★1", pct: 1, count: 1, color: "bg-rose-500" }
+          ]
         },
         performance: [
+          { month: "5月", search: 4200, profile: 1850, web: 310, call: 85, route: 190 },
+          { month: "6月", search: 4680, profile: 2040, web: 345, call: 92, route: 215 },
+          { month: "7月", search: 5120, profile: 2290, web: 390, call: 108, route: 240 },
+          { month: "8月", search: 5490, profile: 2410, web: 420, call: 114, route: 265 },
           { month: "9月", search: 5980, profile: 2780, web: 470, call: 129, route: 295 },
           { month: "10月", search: 6540, profile: 3120, web: 535, call: 146, route: 340 }
         ],
-        citations: [{ label: "データソース", value: "デモモード", status: "good" }]
+        citations: [
+          { label: "連携ディレクトリ総数", value: "18媒体", status: "normal" },
+          { label: "正常公開中 (Live)", value: "14件", status: "good" },
+          { label: "反映待ち (Pending)", value: "3件", status: "warn" },
+          { label: "要修正・表記ゆれ", value: "1件", status: "alert" },
+          { label: "今月のGBP投稿数", value: "9 / 12回", status: "good" },
+          { label: "NAP統一スコア", value: "92%", status: "good" }
+        ]
       }
     ];
+
+    function mapDbStoreToView(dbStore, orgMap, keywordsList) {
+      const orgName = orgMap[dbStore.organization_id]?.name || "登録企業";
+      const baseScore = dbStore.profile_strength_score || 80;
+      const storeKeywords = keywordsList.filter(k => k.store_id === dbStore.id);
+
+      const formattedKeywords = storeKeywords.length > 0 ? storeKeywords.map(kw => ({
+        id: kw.id,
+        word: kw.keyword,
+        date: new Date(kw.updated_at).toLocaleDateString("ja-JP"),
+        avgRank: kw.avg_rank || 3.5,
+        prevRank: kw.prev_rank || 4.2,
+        pins: []
+      })) : [
+        {
+          id: "kw-default",
+          word: `${dbStore.city || "地域"} ${dbStore.name}`,
+          date: "データ未登録",
+          avgRank: "-",
+          prevRank: "-",
+          pins: []
+        }
+      ];
+
+      return {
+        id: dbStore.id,
+        isDemo: false,
+        organization_id: dbStore.organization_id,
+        companyName: orgName,
+        storeName: dbStore.name,
+        prefecture: dbStore.prefecture || "",
+        city: dbStore.city || "",
+        address: `${dbStore.prefecture || ""}${dbStore.city || ""}${dbStore.address || ""}` || "住所未設定",
+        phone: dbStore.phone || "",
+        gbpConnected: !!dbStore.gbp_connected,
+        mapConnected: !!dbStore.map_connected,
+        profileStrengthScore: baseScore,
+        lastSync: dbStore.last_synced_at ? new Date(dbStore.last_synced_at).toLocaleString("ja-JP") : "手動管理モード",
+        keywords: formattedKeywords,
+        profileScores: [
+          { id: "s1", label: "基本情報・カテゴリ設定", score: baseScore, color: "bg-emerald-400", note: "DB登録店舗" },
+          { id: "s2", label: "営業時間・特別営業時間", score: 85, color: "bg-cyan-400", note: "営業時間設定済" },
+          { id: "s3", label: "写真・院内画像の充実度", score: 78, color: "bg-amber-400", note: "写真追加推奨" },
+          { id: "s4", label: "サービス・メニュー登録", score: 90, color: "bg-blue-500", note: "メニュー登録済" }
+        ],
+        tasks: [
+          { id: "t-1", title: "キーワードの追加・順位計測の実施", priority: "高", done: false },
+          { id: "t-2", title: "最新の口コミ返信の確認", priority: "中", done: false }
+        ],
+        reviews: {
+          avg: 4.6,
+          total: 56,
+          newCount: 4,
+          replied: 53,
+          unreplied: 3,
+          replyRate: 94,
+          positiveRate: 90,
+          dist: [
+            { star: "★5", pct: 70, count: 39, color: "bg-emerald-400" },
+            { star: "★4", pct: 20, count: 11, color: "bg-cyan-400" },
+            { star: "★3", pct: 6, count: 3, color: "bg-blue-400" },
+            { star: "★2", pct: 2, count: 2, color: "bg-amber-400" },
+            { star: "★1", pct: 2, count: 1, color: "bg-rose-500" }
+          ]
+        },
+        performance: [
+          { month: "8月", search: 3100, profile: 1400, web: 240, call: 60, route: 150 },
+          { month: "9月", search: 3500, profile: 1650, web: 290, call: 75, route: 180 },
+          { month: "10月", search: 4100, profile: 1900, web: 350, call: 90, route: 220 }
+        ],
+        citations: [
+          { label: "データソース", value: "Supabase DB", status: "good" },
+          { label: "登録キーワード数", value: `${storeKeywords.length}件`, status: "good" },
+          { label: "NAP統一スコア", value: "95%", status: "good" }
+        ]
+      };
+    }
 
     const MENU_ITEMS = [
       { key: "dashboard", label: "ダッシュボード", icon: "📊", roles: ["admin", "staff", "client"] },
       { key: "companies", label: "会社管理", icon: "🏢", roles: ["admin", "staff"] },
       { key: "stores", label: "店舗管理", icon: "🏪", roles: ["admin", "staff", "client"] },
-      { key: "keywords", label: "キーワード管理", icon: "🔑", roles: ["admin", "staff", "client"] },
-      { key: "csv", label: "CSVインポート", icon: "📥", roles: ["admin", "staff"] },
-      { key: "users", label: "ユーザー・権限管理", icon: "👥", roles: ["admin"] }
+      { key: "keywords", label: "キーワード・順位管理", icon: "🔑", roles: ["admin", "staff", "client"] },
+      { key: "reviews", label: "口コミ・手動実績管理", icon: "💬", roles: ["admin", "staff", "client"], badge: "編集可" },
+      { key: "csv", label: "CSV一括インポート", icon: "📥", roles: ["admin", "staff"] },
+      { key: "reports", label: "MEOレポート・PDF", icon: "📄", roles: ["admin", "staff", "client"] },
+      { key: "users", label: "ユーザー・権限管理", icon: "👥", roles: ["admin"] },
+      { key: "settings", label: "システム設定", icon: "⚙️", roles: ["admin"] },
     ];
 
     function App() {
@@ -119,7 +229,7 @@
 
       const [session, setSession] = useState(null);
       const [userProfile, setUserProfile] = useState(null);
-      const [authLoading, setAuthLoading] = useState(false);
+      const [authLoading, setAuthLoading] = useState(true);
       const [authMode, setAuthMode] = useState("login");
       const [email, setEmail] = useState("");
       const [password, setPassword] = useState("");
@@ -128,17 +238,152 @@
       const [authMessage, setAuthMessage] = useState({ type: "", text: "" });
       const [demoBypass, setDemoBypass] = useState(false);
 
+      // DBレコード
       const [dbOrgs, setDbOrgs] = useState([]);
       const [dbStores, setDbStores] = useState([]);
       const [dbKeywords, setDbKeywords] = useState([]);
-      const [activeMenu, setActiveMenu] = useState("dashboard");
-      const [selectedStoreId, setSelectedStoreId] = useState("demo-store-1");
+      const [dbProfiles, setDbProfiles] = useState([]);
       const [actionNotice, setActionNotice] = useState("");
+
+      // フェーズ6・7フォーム用
+      const [newKeywordText, setNewKeywordText] = useState("");
+      const [newKeywordStoreId, setNewKeywordStoreId] = useState("");
+      const [csvRawText, setCsvRawText] = useState("");
+      const [csvTargetStoreId, setCsvTargetStoreId] = useState("");
+
+      // 手動入力用口コミ＆実績フォーム
+      const [manualTotalReviews, setManualTotalReviews] = useState("120");
+      const [manualAvgRating, setManualAvgRating] = useState("4.6");
+      const [manualSearchViews, setManualSearchViews] = useState("5000");
 
       const notify = (msg) => {
         setActionNotice(msg);
         setTimeout(() => setActionNotice(""), 4000);
       };
+
+      useEffect(() => {
+        if (!supabase) {
+          setAuthLoading(false);
+          return;
+        }
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          setSession(session);
+          if (session?.user) fetchUserData(session.user.id, session.user.email);
+          else setAuthLoading(false);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          setSession(session);
+          if (session?.user) fetchUserData(session.user.id, session.user.email);
+          else {
+            setUserProfile(null);
+            setAuthLoading(false);
+          }
+        });
+        return () => subscription.unsubscribe();
+      }, [supabase]);
+
+      const fetchUserData = async (userId, userEmail) => {
+        if (!supabase) return;
+        const { data: prof } = await supabase.from("profiles").select("*").eq("id", userId).single();
+        if (prof) {
+          setUserProfile(prof);
+        } else {
+          const fallback = { id: userId, email: userEmail, full_name: "Re.Start 管理者", role: "admin" };
+          await supabase.from("profiles").upsert(fallback);
+          setUserProfile(fallback);
+        }
+        await reloadRecords();
+        setAuthLoading(false);
+      };
+
+      const reloadRecords = async () => {
+        if (!supabase) return;
+        const [orgRes, stRes, kwRes, pfRes] = await Promise.all([
+          supabase.from("organizations").select("*").order("created_at", { ascending: false }),
+          supabase.from("stores").select("*").order("created_at", { ascending: false }),
+          supabase.from("keywords").select("*").order("created_at", { ascending: false }),
+          supabase.from("profiles").select("*")
+        ]);
+
+        setDbOrgs(orgRes.data || []);
+        setDbStores(stRes.data || []);
+        setDbKeywords(kwRes.data || []);
+        setDbProfiles(pfRes.data || []);
+
+        if (stRes.data?.length > 0) {
+          if (!newKeywordStoreId) setNewKeywordStoreId(stRes.data[0].id);
+          if (!csvTargetStoreId) setCsvTargetStoreId(stRes.data[0].id);
+        }
+      };
+
+      // --- フェーズ6：キーワードの追加 ---
+      const handleAddKeyword = async (e) => {
+        e.preventDefault();
+        if (!supabase || !newKeywordText.trim() || !newKeywordStoreId) return;
+
+        const { error } = await supabase.from("keywords").insert({
+          store_id: newKeywordStoreId,
+          keyword: newKeywordText.trim(),
+          created_by: session?.user?.id
+        });
+
+        if (error) {
+          alert("キーワード登録エラー: " + error.message);
+          return;
+        }
+
+        setNewKeywordText("");
+        await reloadRecords();
+        notify("🔑 キーワードをデータベースに登録しました！");
+      };
+
+      // --- フェーズ7：CSV一括インポート処理 ---
+      const handleCsvImport = async (e) => {
+        e.preventDefault();
+        if (!supabase || !csvRawText.trim() || !csvTargetStoreId) {
+          alert("CSVテキストと対象店舗を入力してください。");
+          return;
+        }
+
+        const lines = csvRawText.trim().split("\n");
+        let successCount = 0;
+
+        for (const line of lines) {
+          const parts = line.split(",").map(s => s.trim());
+          const kwWord = parts[0];
+          if (!kwWord) continue;
+
+          const { error } = await supabase.from("keywords").insert({
+            store_id: csvTargetStoreId,
+            keyword: kwWord,
+            created_by: session?.user?.id
+          });
+          if (!error) successCount++;
+        }
+
+        setCsvRawText("");
+        await reloadRecords();
+        notify(`📥 CSVインポート完了: ${successCount}件のキーワードを一括登録しました！`);
+      };
+
+      // 統合店舗リスト
+      const allViewStores = useMemo(() => {
+        const orgMap = {};
+        dbOrgs.forEach(o => { orgMap[o.id] = o; });
+        const mappedReal = dbStores.map(s => mapDbStoreToView(s, orgMap, dbKeywords));
+        return [...mappedReal, ...DEMO_STORES];
+      }, [dbStores, dbOrgs, dbKeywords]);
+
+      const [selectedStoreId, setSelectedStoreId] = useState(() => allViewStores[0]?.id || "demo-store-1");
+
+      const currentStore = useMemo(() => {
+        return allViewStores.find(s => s.id === selectedStoreId) || allViewStores[0];
+      }, [allViewStores, selectedStoreId]);
+
+      const currentKeyword = currentStore.keywords[0] || { word: "キーワード未設定", avgRank: "-", date: "-" };
+      const role = userProfile?.role || "admin";
+      const visibleMenus = MENU_ITEMS.filter(item => item.roles.includes(role));
 
       const handleSaveConfig = (e) => {
         e.preventDefault();
@@ -152,28 +397,19 @@
         e.preventDefault();
         setAuthMessage({ type: "", text: "" });
         if (!supabase) {
-          setAuthMessage({ type: "error", text: "SupabaseのURLとキーを設定してください。" });
+          setAuthMessage({ type: "error", text: "Supabase接続設定を行ってください。" });
           return;
         }
         if (authMode === "login") {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) {
-            setAuthMessage({ type: "error", text: "ログイン失敗: " + error.message });
-          } else {
-            setSession(data.session);
-            setUserProfile({ full_name: "管理者ユーザー", role: "admin" });
-          }
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) setAuthMessage({ type: "error", text: "ログイン失敗: " + error.message });
         } else {
-          const { data, error } = await supabase.auth.signUp({
+          const { error } = await supabase.auth.signUp({
             email, password,
-            options: { data: { full_name: fullName || "管理者", role: signupRole } }
+            options: { data: { full_name: fullName || "Re.Start ユーザー", role: signupRole } }
           });
-          if (error) {
-            setAuthMessage({ type: "error", text: "登録エラー: " + error.message });
-          } else {
-            setAuthMessage({ type: "success", text: "登録成功！そのままログインしてください。" });
-            setAuthMode("login");
-          }
+          if (error) setAuthMessage({ type: "error", text: "登録エラー: " + error.message });
+          else setAuthMessage({ type: "success", text: "登録＆ログイン成功！" });
         }
       };
 
@@ -181,84 +417,68 @@
         if (supabase) await supabase.auth.signOut();
         setSession(null);
         setUserProfile(null);
-        setDemoBypass(false);
       };
 
-      const role = userProfile?.role || "admin";
-      const visibleMenus = MENU_ITEMS.filter(item => item.roles.includes(role));
-
-      // ログイン画面
       if (!session && !demoBypass) {
         return (
           <div className="min-h-screen bg-navy-950 flex flex-col justify-center items-center p-4">
             <div className="w-full max-w-md bg-navy-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 to-blue-600 flex items-center justify-center font-bold text-white">R</div>
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-500 via-amber-500 to-blue-600 flex items-center justify-center font-black text-xl text-white">R</div>
                 <div>
                   <h1 className="text-lg font-bold text-white">Re.Start MEO</h1>
-                  <p className="text-xs text-slate-400">ログイン認証</p>
+                  <p className="text-xs text-slate-400">フェーズ6・7 ログイン</p>
                 </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center text-xs">
-                <span className="text-slate-200">Supabase接続状態: {supabase ? "OK" : "未設定"}</span>
-                <button onClick={() => setShowConfigModal(!showConfigModal)} className="text-cyan-400 underline font-bold">設定</button>
               </div>
 
               {(!supabase || showConfigModal) && (
                 <form onSubmit={handleSaveConfig} className="p-4 rounded-xl bg-navy-950 border border-cyan-500/40 space-y-3 text-xs">
+                  <div className="font-bold text-cyan-300">🔑 Supabase接続キー設定</div>
                   <div>
                     <label className="block text-slate-400 mb-1">Project URL</label>
-                    <input type="url" required value={sbUrl} onChange={e => setSbUrl(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded p-2 text-white" />
+                    <input type="url" required value={sbUrl} onChange={e => setSbUrl(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
                   </div>
                   <div>
                     <label className="block text-slate-400 mb-1">API Key (anon public)</label>
-                    <input type="text" required value={sbKey} onChange={e => setSbKey(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded p-2 text-white" />
+                    <input type="text" required value={sbKey} onChange={e => setSbKey(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded-lg px-3 py-2 text-white" />
                   </div>
-                  <button type="submit" className="w-full bg-cyan-600 text-white font-bold py-2 rounded">保存する</button>
+                  <button type="submit" className="w-full bg-cyan-600 text-white font-bold py-2 rounded-lg">保存する</button>
                 </form>
               )}
 
               <div className="grid grid-cols-2 gap-2 bg-navy-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
-                <button type="button" onClick={() => setAuthMode("login")} className={`py-2 rounded ${authMode === "login" ? "bg-blue-600 text-white" : "text-slate-400"}`}>ログイン</button>
-                <button type="button" onClick={() => setAuthMode("signup")} className={`py-2 rounded ${authMode === "signup" ? "bg-emerald-600 text-white" : "text-slate-400"}`}>新規登録</button>
+                <button type="button" onClick={() => setAuthMode("login")} className={`py-2 rounded-lg ${authMode === "login" ? "bg-blue-600 text-white" : "text-slate-400"}`}>ログイン</button>
+                <button type="button" onClick={() => setAuthMode("signup")} className={`py-2 rounded-lg ${authMode === "signup" ? "bg-emerald-600 text-white" : "text-slate-400"}`}>新規登録</button>
               </div>
 
-              {authMessage.text && <div className="p-3 rounded-xl text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40">{authMessage.text}</div>}
+              {authMessage.text && <div className="p-3 rounded-xl text-xs bg-rose-500/15 border border-rose-500/40 text-rose-300">{authMessage.text}</div>}
 
-              <form onSubmit={handleAuthSubmit} className="space-y-3 text-xs">
+              <form onSubmit={handleAuthSubmit} className="space-y-3.5 text-xs">
                 {authMode === "signup" && (
                   <div>
                     <label className="block text-slate-300 mb-1">お名前</label>
-                    <input type="text" required value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" />
+                    <input type="text" required value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl px-3 py-2 text-white" />
                   </div>
                 )}
                 <div>
                   <label className="block text-slate-300 mb-1">メールアドレス</label>
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" />
+                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl px-3 py-2 text-white" />
                 </div>
                 <div>
                   <label className="block text-slate-300 mb-1">パスワード</label>
-                  <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" />
+                  <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl px-3 py-2 text-white" />
                 </div>
-                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow">実行する</button>
+                <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">実行する</button>
               </form>
-
-              <div className="text-center pt-2">
-                <button onClick={() => { setDemoBypass(true); setUserProfile({ full_name: "ゲストユーザー", role: "admin" }); }} className="text-xs text-slate-400 underline">
-                  ログインせずにデモ画面を見る ➔
-                </button>
-              </div>
             </div>
           </div>
         );
       }
 
-      // メインダッシュボード画面
       return (
         <div className="min-h-screen flex flex-col bg-navy-950 text-slate-100">
           <div className="bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-b border-blue-500/40 px-3 py-1.5 text-xs flex justify-between items-center">
-            <span className="font-bold text-emerald-300">Re.Start MEO 管理システム稼働中</span>
+            <span className="font-bold text-emerald-300">フェーズ6・7 稼働中（DB直結・キーワード＆CSV対応）</span>
             <button onClick={handleLogout} className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold">ログアウト</button>
           </div>
 
@@ -269,9 +489,18 @@
               <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center font-bold justify-center text-white">R</div>
               <span className="font-bold text-sm">Re.Start MEO SaaS</span>
             </div>
-            <div className="text-xs text-cyan-400 font-bold">
-              ユーザー: {userProfile?.full_name || "管理者"} ({role.toUpperCase()})
-            </div>
+            <select
+              value={selectedStoreId}
+              onChange={e => setSelectedStoreId(e.target.value)}
+              className="bg-navy-800 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-white max-w-[200px]"
+            >
+              <optgroup label="📌 DB登録店舗">
+                {dbStores.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+              </optgroup>
+              <optgroup label="🧪 デモ店舗">
+                {DEMO_STORES.map(st => <option key={st.id} value={st.id}>{st.storeName}</option>)}
+              </optgroup>
+            </select>
           </header>
 
           <div className="flex-1 flex">
@@ -292,15 +521,153 @@
             </aside>
 
             <main className="flex-1 p-4 lg:p-6 overflow-y-auto space-y-5">
-              <div className="bg-navy-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-                <h2 className="text-lg font-bold text-white mb-2">📊 MEOダッシュボード</h2>
-                <p className="text-xs text-slate-300 mb-4">ログインおよびシステム基盤の修復が完了しました。</p>
-                <div className="p-4 rounded-xl bg-navy-950 border border-slate-700 text-xs space-y-2">
-                  <div className="font-bold text-cyan-300">📌 現在の状態：</div>
-                  <div>・Supabase認証・ログイン機能：正常動作</div>
-                  <div>・画面レンダリング：安定版（エラーブロック済み）</div>
+              {/* ========================================== */}
+              {/* 🔑 フェーズ6：キーワード・順位管理 (activeMenu === 'keywords') */}
+              {/* ========================================== */}
+              {activeMenu === "keywords" && (
+                <div className="space-y-5">
+                  <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5">
+                    <h2 className="text-lg font-bold text-white">🔑 計測キーワード管理</h2>
+                    <p className="text-xs text-slate-400 mt-1">Supabaseの `keywords` テーブルに直接キーワードを追加します。</p>
+                  </div>
+
+                  <form onSubmit={handleAddKeyword} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <h3 className="text-sm font-bold text-cyan-300">＋ キーワードの追加</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block text-slate-300 mb-1">対象店舗</label>
+                        <select
+                          value={newKeywordStoreId}
+                          onChange={e => setNewKeywordStoreId(e.target.value)}
+                          className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                        >
+                          {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 mb-1">キーワード (例: 岐阜駅 整体)</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="岐阜駅 整体"
+                          value={newKeywordText}
+                          onChange={e => setNewKeywordText(e.target.value)}
+                          className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="bg-blue-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl">キーワードを登録する</button>
+                  </form>
+
+                  <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5">
+                    <h3 className="text-sm font-bold text-white mb-3">現在登録されているキーワード一覧（{dbKeywords.length}件）</h3>
+                    <div className="space-y-2">
+                      {dbKeywords.map(kw => {
+                        const st = dbStores.find(s => s.id === kw.store_id);
+                        return (
+                          <div key={kw.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center text-xs">
+                            <div>
+                              <span className="font-bold text-white text-sm">{kw.keyword}</span>
+                              <span className="text-slate-400 ml-2">({st?.name || "店舗"})</span>
+                            </div>
+                            <span className="text-emerald-400 font-semibold">計測対象</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* ========================================== */}
+              {/* 📥 フェーズ7：CSV一括インポート (activeMenu === 'csv') */}
+              {/* ========================================== */}
+              {activeMenu === "csv" && (
+                <div className="space-y-5">
+                  <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5">
+                    <h2 className="text-lg font-bold text-white">📥 CSV一括キーワードインポート</h2>
+                    <p className="text-xs text-slate-400 mt-1">複数のキーワードをカンマ区切り（または1行ずつ）でまとめてSupabaseに登録できます。</p>
+                  </div>
+
+                  <form onSubmit={handleCsvImport} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div className="text-xs space-y-2">
+                      <label className="block text-slate-300 font-bold">対象店舗</label>
+                      <select
+                        value={csvTargetStoreId}
+                        onChange={e => setCsvTargetStoreId(e.target.value)}
+                        className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white"
+                      >
+                        {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="text-xs space-y-2">
+                      <label className="block text-slate-300 font-bold">CSVデータ（1行に1キーワード）</label>
+                      <textarea
+                        rows="5"
+                        required
+                        placeholder="岐阜駅 整体&#10;岐阜市 肩こり&#10;岐阜 骨盤矯正"
+                        value={csvRawText}
+                        onChange={e => setCsvRawText(e.target.value)}
+                        className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white font-mono"
+                      />
+                    </div>
+                    <button type="submit" className="bg-emerald-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl">CSVを一括インポート実行する</button>
+                  </form>
+                </div>
+              )}
+
+              {/* その他のメニュー */}
+              {!["dashboard", "keywords", "csv", "companies", "stores", "users"].includes(activeMenu) && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5">
+                  <h2 className="text-base font-bold text-blue-300">「{MENU_ITEMS.find(m => m.key === activeMenu)?.label}」セクション</h2>
+                  <p className="text-xs text-slate-300 mt-1">フェーズ8以降で順次完全連動いたします。ダッシュボードやキーワード管理をお試しください。</p>
+                  <button onClick={() => setActiveMenu("dashboard")} className="mt-3 bg-blue-600 text-white text-xs px-4 py-2 rounded-xl font-bold">ダッシュボードへ戻る</button>
+                </div>
+              )}
+
+              {/* 📊 ダッシュボード */}
+              {activeMenu === "dashboard" && (
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+                  <div className="xl:col-span-8 space-y-5">
+                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                      <div className="flex justify-between items-center mb-4">
+                        <div>
+                          <h2 className="text-base font-bold text-white">メインキーワード順位プレビュー</h2>
+                          <p className="text-xs text-slate-400">店舗名: {currentStore.storeName}</p>
+                        </div>
+                        <div className="bg-navy-800 border border-slate-700 text-xs px-3 py-2 rounded-lg text-emerald-400 font-bold">
+                          🔑 キーワード: {currentKeyword.word}
+                        </div>
+                      </div>
+
+                      <div className="w-full h-64 rounded-xl border border-dashed border-slate-700 bg-navy-950 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="text-3xl mb-2">📈</div>
+                        <h3 className="text-sm font-bold text-white">データベース連動キーワード</h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                          現在選択中の店舗には {currentStore.keywords.length}件 のキーワードが紐づいています。[span_2](start_span)[span_2](end_span)
+                        </p>
+                      </div>
+                    </section>
+                  </div>
+
+                  <div className="xl:col-span-4 space-y-5">
+                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                      <h3 className="text-sm font-bold text-white mb-3">口コミ・評価サマリー</h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-navy-800 p-3 rounded-xl">
+                          <div className="text-amber-400 text-sm">★★★★★</div>
+                          <div className="text-xl font-black text-white mt-1">{currentStore.reviews.avg}</div>
+                        </div>
+                        <div className="bg-navy-800 p-3 rounded-xl">
+                          <div className="text-xs text-slate-300">総口コミ数</div>
+                          <div className="text-xl font-black text-cyan-400 mt-1">{currentStore.reviews.total}件</div>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              )}
             </main>
           </div>
         </div>
