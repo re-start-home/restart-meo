@@ -1,1 +1,866 @@
 
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Re.Start MEO | MEO対策統合管理システム</title>
+  <!-- Tailwind CSS (デザイン) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & Babel (画面を動かすエンジン) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Supabase (フェーズ2以降で使用するデータベース通信用) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              950: '#070B14',
+              900: '#0B1120',
+              800: '#131C31',
+              700: '#1E293B',
+              600: '#334155',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #070B14;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Meiryo", sans-serif;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0B1120; }
+    ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-navy-950 text-slate-100 min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // --- デモデータ定義（実在データと誤認させないよう明記） ---
+    const DEMO_STORES = [
+      {
+        id: "store-1",
+        companyName: "株式会社東海ウェルネス（デモ顧客A社）",
+        storeName: "整体サロン Re.Body 岐阜駅前院【デモ】",
+        address: "岐阜県岐阜市神田町9丁目（デモ所在地）",
+        gbpConnected: true,
+        mapConnected: true,
+        lastSync: "2026-10-28 09:30（デモデータ）",
+        keywords: [
+          {
+            id: "kw-1",
+            word: "岐阜駅 整体",
+            date: "2026-10-28",
+            avgRank: 2.1,
+            prevRank: 3.8,
+            pins: [
+              { id: 1, area: "JR岐阜駅北口", top: "46%", left: "44%", rank: 1 },
+              { id: 2, area: "名鉄岐阜駅前", top: "42%", left: "58%", rank: 1 },
+              { id: 3, area: "柳ヶ瀬エリア", top: "25%", left: "50%", rank: 2 },
+              { id: 4, area: "加納エリア", top: "70%", left: "48%", rank: 2 },
+              { id: 5, area: "金華橋通り", top: "32%", left: "35%", rank: 3 },
+              { id: 6, area: "長良橋南", top: "18%", left: "66%", rank: 4 },
+              { id: 7, area: "県庁前エリア", top: "76%", left: "26%", rank: 5 },
+              { id: 8, area: "岐南インター北", top: "75%", left: "74%", rank: 8 },
+              { id: 9, area: "忠節橋エリア", top: "22%", left: "24%", rank: 12 }
+            ]
+          },
+          {
+            id: "kw-2",
+            word: "岐阜市 骨盤矯正 肩こり",
+            date: "2026-10-28",
+            avgRank: 3.6,
+            prevRank: 5.0,
+            pins: [
+              { id: 1, area: "JR岐阜駅北口", top: "46%", left: "44%", rank: 2 },
+              { id: 2, area: "名鉄岐阜駅前", top: "42%", left: "58%", rank: 2 },
+              { id: 3, area: "柳ヶ瀬エリア", top: "25%", left: "50%", rank: 3 },
+              { id: 4, area: "加納エリア", top: "70%", left: "48%", rank: 4 },
+              { id: 5, area: "金華橋通り", top: "32%", left: "35%", rank: 3 },
+              { id: 6, area: "長良橋南", top: "18%", left: "66%", rank: 6 },
+              { id: 7, area: "県庁前エリア", top: "76%", left: "26%", rank: 7 },
+              { id: 8, area: "岐南インター北", top: "75%", left: "74%", rank: 11 },
+              { id: 9, area: "忠節橋エリア", top: "22%", left: "24%", rank: 15 }
+            ]
+          }
+        ],
+        profileScores: [
+          { id: "s1", label: "基本情報・カテゴリ設定", score: 95, color: "bg-emerald-400", note: "主/副カテゴリ・説明文300字済" },
+          { id: "s2", label: "営業時間・特別営業時間", score: 80, color: "bg-amber-400", note: "11月の祝日営業時間が未設定" },
+          { id: "s3", label: "写真・院内画像の充実度", score: 88, color: "bg-cyan-400", note: "計34枚登録（今月+4枚追加）" },
+          { id: "s4", label: "サービス・メニュー登録", score: 90, color: "bg-blue-500", note: "主要施術コース8件登録済" }
+        ],
+        tasks: [
+          { id: "t1", title: "未返信の口コミ3件への返信作成・投稿", priority: "高", done: false },
+          { id: "t2", title: "11月（祝日）の特別営業時間をGBPに設定", priority: "高", done: false },
+          { id: "t3", title: "秋の姿勢改善キャンペーン投稿（最新情報）配信", priority: "中", done: true },
+          { id: "t4", title: "施術室・カウンセリング風景の写真5枚追加", priority: "中", done: true }
+        ],
+        reviews: {
+          avg: 4.7,
+          total: 128,
+          newCount: 11,
+          replied: 125,
+          unreplied: 3,
+          replyRate: 98,
+          positiveRate: 94,
+          dist: [
+            { star: "★5", pct: 75, count: 96, color: "bg-emerald-400" },
+            { star: "★4", pct: 19, count: 24, color: "bg-cyan-400" },
+            { star: "★3", pct: 4, count: 5, color: "bg-blue-400" },
+            { star: "★2", pct: 1, count: 2, color: "bg-amber-400" },
+            { star: "★1", pct: 1, count: 1, color: "bg-rose-500" }
+          ]
+        },
+        performance: [
+          { month: "5月", search: 4200, profile: 1850, web: 310, call: 85, route: 190 },
+          { month: "6月", search: 4680, profile: 2040, web: 345, call: 92, route: 215 },
+          { month: "7月", search: 5120, profile: 2290, web: 390, call: 108, route: 240 },
+          { month: "8月", search: 5490, profile: 2410, web: 420, call: 114, route: 265 },
+          { month: "9月", search: 5980, profile: 2780, web: 470, call: 129, route: 295 },
+          { month: "10月", search: 6540, profile: 3120, web: 535, call: 146, route: 340 }
+        ],
+        citations: [
+          { label: "連携ディレクトリ総数", value: "18媒体", status: "normal" },
+          { label: "正常公開中 (Live)", value: "14件", status: "good" },
+          { label: "反映待ち (Pending)", value: "3件", status: "warn" },
+          { label: "要修正・表記ゆれ", value: "1件", status: "alert" },
+          { label: "今月のGBP投稿数", value: "9 / 12回", status: "good" },
+          { label: "NAP統一スコア", value: "92%", status: "good" }
+        ]
+      },
+      {
+        id: "store-2",
+        companyName: "株式会社東海ウェルネス（デモ顧客A社）",
+        storeName: "整体サロン Re.Body 長良公園前院【未連携デモ】",
+        address: "岐阜県岐阜市長良（デモ所在地）",
+        gbpConnected: false,
+        mapConnected: false,
+        lastSync: "API未連携（手動入力データのみ）",
+        keywords: [
+          {
+            id: "kw-3",
+            word: "岐阜市長良 整体",
+            date: "2026-10-28",
+            avgRank: 6.4,
+            prevRank: 7.2,
+            pins: []
+          }
+        ],
+        profileScores: [
+          { id: "s1", label: "基本情報・カテゴリ設定", score: 75, color: "bg-cyan-400", note: "説明文の文字数が不足しています" },
+          { id: "s2", label: "営業時間・特別営業時間", score: 60, color: "bg-amber-400", note: "特別営業時間が未登録です" },
+          { id: "s3", label: "写真・院内画像の充実度", score: 50, color: "bg-amber-400", note: "外観・スタッフ写真の追加が必要" },
+          { id: "s4", label: "サービス・メニュー登録", score: 65, color: "bg-blue-500", note: "コース3件のみ登録済" }
+        ],
+        tasks: [
+          { id: "t21", title: "GoogleビジネスプロフィールOAuth連携の承認", priority: "高", done: false },
+          { id: "t22", title: "駐車場案内写真のアップロード（3枚）", priority: "中", done: false }
+        ],
+        reviews: {
+          avg: 4.3,
+          total: 42,
+          newCount: 3,
+          replied: 38,
+          unreplied: 4,
+          replyRate: 90,
+          positiveRate: 84,
+          dist: [
+            { star: "★5", pct: 60, count: 25, color: "bg-emerald-400" },
+            { star: "★4", pct: 24, count: 10, color: "bg-cyan-400" },
+            { star: "★3", pct: 9, count: 4, color: "bg-blue-400" },
+            { star: "★2", pct: 5, count: 2, color: "bg-amber-400" },
+            { star: "★1", pct: 2, count: 1, color: "bg-rose-500" }
+          ]
+        },
+        performance: [],
+        citations: [
+          { label: "連携ディレクトリ総数", value: "18媒体", status: "normal" },
+          { label: "正常公開中 (Live)", value: "8件", status: "normal" },
+          { label: "反映待ち (Pending)", value: "6件", status: "warn" },
+          { label: "要修正・表記ゆれ", value: "4件", status: "alert" },
+          { label: "今月のGBP投稿数", value: "4 / 8回", status: "warn" },
+          { label: "NAP統一スコア", value: "68%", status: "warn" }
+        ]
+      }
+    ];
+
+    const MENU_ITEMS = [
+      { key: "dashboard", label: "ダッシュボード", icon: "📊", roles: ["admin", "staff", "client"] },
+      { key: "companies", label: "会社管理", icon: "🏢", roles: ["admin", "staff"] },
+      { key: "stores", label: "店舗管理", icon: "🏪", roles: ["admin", "staff", "client"] },
+      { key: "rankings", label: "検索順位管理", icon: "📍", roles: ["admin", "staff", "client"] },
+      { key: "keywords", label: "キーワード管理", icon: "🔑", roles: ["admin", "staff", "client"] },
+      { key: "reviews", label: "口コミ管理", icon: "💬", roles: ["admin", "staff", "client"], badge: "未返信" },
+      { key: "posts", label: "投稿管理", icon: "📝", roles: ["admin", "staff", "client"] },
+      { key: "reports", label: "MEOレポート・PDF", icon: "📄", roles: ["admin", "staff", "client"] },
+      { key: "csv", label: "CSVインポート", icon: "📥", roles: ["admin", "staff"] },
+      { key: "users", label: "ユーザー・権限管理", icon: "👥", roles: ["admin"] },
+      { key: "settings", label: "システム設定", icon: "⚙️", roles: ["admin"] },
+    ];
+
+    function App() {
+      const [role, setRole] = useState("admin"); // admin | staff | client
+      const [activeMenu, setActiveMenu] = useState("dashboard");
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+      const [selectedStoreId, setSelectedStoreId] = useState(DEMO_STORES[0].id);
+      const [selectedKwIndex, setSelectedKwIndex] = useState(0);
+      const [metricKey, setMetricKey] = useState("search");
+      const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+      const [storeList, setStoreList] = useState(DEMO_STORES);
+
+      const currentStore = useMemo(() => {
+        return storeList.find(s => s.id === selectedStoreId) || storeList[0];
+      }, [storeList, selectedStoreId]);
+
+      const currentKeyword = currentStore.keywords[selectedKwIndex] || currentStore.keywords[0];
+
+      const visibleMenus = useMemo(() => {
+        return MENU_ITEMS.filter(item => item.roles.includes(role));
+      }, [role]);
+
+      const toggleTask = (taskId) => {
+        if (role === "client") {
+          alert("顧客アカウントは閲覧専用です。タスクの完了操作はRe.Start担当者または管理者のみ行えます。");
+          return;
+        }
+        setStoreList(prev => prev.map(store => {
+          if (store.id !== currentStore.id) return store;
+          return {
+            ...store,
+            tasks: store.tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t)
+          };
+        }));
+      };
+
+      const getPinColor = (rank) => {
+        if (rank <= 3) return "bg-emerald-500 border-emerald-200 text-slate-950 shadow-emerald-500/50";
+        if (rank <= 10) return "bg-cyan-500 border-cyan-200 text-slate-950 shadow-cyan-500/50";
+        return "bg-amber-500 border-amber-200 text-slate-950 shadow-amber-500/50";
+      };
+
+      const metricLabels = {
+        search: { name: "検索表示数", color: "bg-cyan-400" },
+        profile: { name: "プロフィール閲覧数", color: "bg-blue-500" },
+        web: { name: "Webサイトクリック数", color: "bg-emerald-400" },
+        call: { name: "電話クリック数", color: "bg-amber-400" },
+        route: { name: "ルート検索数", color: "bg-purple-400" },
+      };
+
+      const maxMetricValue = useMemo(() => {
+        if (!currentStore.performance.length) return 100;
+        return Math.max(...currentStore.performance.map(p => p[metricKey])) * 1.1;
+      }, [currentStore, metricKey]);
+
+      return (
+        <div className="min-h-screen flex flex-col bg-navy-950 text-slate-100">
+          {/* デモデータ明示バナー（最重要要件準拠） */}
+          <div className="bg-gradient-to-r from-amber-500/20 via-blue-500/20 to-emerald-500/20 border-b border-amber-500/40 px-3 py-1.5 text-xs flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded text-[11px]">DEMO MODE</span>
+              <span className="text-amber-200 font-medium">
+                現在表示されている数値はサンプル用の「デモデータ」です（実際のGoogle公式データではありません）
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">権限プレビュー切替:</span>
+              <button
+                onClick={() => setRole("admin")}
+                className={`px-2 py-0.5 rounded font-semibold transition ${role === "admin" ? "bg-blue-600 text-white" : "bg-navy-800 text-slate-400"}`}
+              >
+                管理者
+              </button>
+              <button
+                onClick={() => setRole("staff")}
+                className={`px-2 py-0.5 rounded font-semibold transition ${role === "staff" ? "bg-cyan-600 text-white" : "bg-navy-800 text-slate-400"}`}
+              >
+                従業員
+              </button>
+              <button
+                onClick={() => setRole("client")}
+                className={`px-2 py-0.5 rounded font-semibold transition ${role === "client" ? "bg-emerald-600 text-white" : "bg-navy-800 text-slate-400"}`}
+              >
+                顧客(閲覧のみ)
+              </button>
+            </div>
+          </div>
+
+          {/* A. ヘッダー */}
+          <header className="bg-navy-900/95 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {/* スマホ用ハンバーガーメニューボタン */}
+                <button
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className="lg:hidden p-2 rounded-lg bg-navy-800 border border-slate-700 text-slate-200"
+                  aria-label="メニューを開く"
+                >
+                  ☰
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 via-amber-500 to-blue-600 flex items-center justify-center font-black text-white shadow-lg shadow-orange-500/20">
+                    R
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-base tracking-wide text-white">Re.Start MEO</span>
+                      <span className="hidden sm:inline-block text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full">
+                        PRO SaaS
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 hidden sm:block">{currentStore.companyName}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 店舗切り替えセレクター＆ユーザー情報 */}
+              <div className="flex items-center gap-2 sm:gap-4">
+                <select
+                  value={selectedStoreId}
+                  onChange={(e) => {
+                    setSelectedStoreId(e.target.value);
+                    setSelectedKwIndex(0);
+                  }}
+                  className="bg-navy-800 border border-slate-700 text-xs sm:text-sm text-slate-100 rounded-lg px-2.5 py-2 focus:outline-none focus:border-blue-500 max-w-[180px] sm:max-w-xs"
+                >
+                  {storeList.map(st => (
+                    <option key={st.id} value={st.id}>{st.storeName}</option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-2 bg-navy-800 border border-slate-700/80 rounded-full px-3 py-1.5">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-500 to-cyan-400 flex items-center justify-center text-xs font-bold text-slate-950">
+                    {role === "admin" ? "管" : role === "staff" ? "従" : "顧"}
+                  </div>
+                  <div className="hidden md:block text-left">
+                    <div className="text-xs font-semibold text-white leading-none">
+                      {role === "admin" ? "Re.Start 管理者" : role === "staff" ? "Re.Start 担当スタッフ" : "東海ウェルネス ご担当者様"}
+                    </div>
+                    <div className="text-[10px] text-cyan-400 mt-0.5">
+                      権限: {role === "admin" ? "全社管理 (Admin)" : role === "staff" ? "担当店舗編集 (Staff)" : "自社閲覧のみ (Client)"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* メイン2カラム構成（左サイドバー ＋ メインダッシュボード） */}
+          <div className="flex-1 flex relative">
+            {/* スマホ用背景オーバーレイ */}
+            {mobileMenuOpen && (
+              <div
+                className="fixed inset-0 bg-black/70 z-40 lg:hidden"
+                onClick={() => setMobileMenuOpen(false)}
+              />
+            )}
+
+            {/* B. 左サイドバー */}
+            <aside
+              className={`fixed lg:static top-0 left-0 z-50 lg:z-10 h-full lg:h-auto w-64 bg-navy-900 border-r border-slate-800/90 flex-shrink-0 flex flex-col justify-between p-4 transition-transform duration-200 ${
+                mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+              }`}
+            >
+              <div>
+                <div className="flex items-center justify-between lg:hidden mb-4 pb-3 border-b border-slate-800">
+                  <span className="font-bold text-sm text-white">メニュー（{role.toUpperCase()}）</span>
+                  <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400 px-2 py-1">✕</button>
+                </div>
+
+                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-2">
+                  メインナビゲーション
+                </div>
+                <nav className="space-y-1">
+                  {visibleMenus.map(item => {
+                    const isActive = activeMenu === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        onClick={() => {
+                          setActiveMenu(item.key);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-blue-600/25"
+                            : "text-slate-300 hover:bg-navy-800 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span>{item.icon}</span>
+                          <span>{item.label}</span>
+                        </div>
+                        {item.badge && (
+                          <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.5 rounded-full">
+                            {currentStore.reviews.unrepliedCount}件
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                {/* 左下：店舗サイテーション＆基本ステータス（参考画像のLocal Citationsパネル） */}
+                <div className="mt-6 pt-5 border-t border-slate-800">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <span className="text-xs font-bold text-white">店舗サイテーション・状態</span>
+                    <span className="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded">NAP管理</span>
+                  </div>
+                  <div className="bg-navy-800/90 border border-slate-800 rounded-xl p-3 space-y-2.5">
+                    {currentStore.citations.map((cit, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs border-b border-slate-800/70 last:border-0 pb-1.5 last:pb-0">
+                        <span className="text-slate-300">{cit.label}</span>
+                        <span className={`font-bold ${
+                          cit.status === "good" ? "text-emerald-400" :
+                          cit.status === "warn" ? "text-amber-400" :
+                          cit.status === "alert" ? "text-rose-400" : "text-white"
+                        }`}>
+                          {cit.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-3 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
+                <div>最終同期: {currentStore.lastSync}</div>
+                <div className="text-slate-500">© 2026 Re.Start MEO System</div>
+              </div>
+            </aside>
+
+            {/* メインコンテンツエリア */}
+            <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto space-y-5">
+              {/* 選択メニューがダッシュボード以外の時の案内バー */}
+              {activeMenu !== "dashboard" && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-sm font-bold text-blue-300">
+                      現在「{MENU_ITEMS.find(m => m.key === activeMenu)?.label}」セクションを選択中です
+                    </h2>
+                    <p className="text-xs text-slate-300 mt-1">
+                      フェーズ1ではメインダッシュボードのUI/UXを実装しています。各専用管理画面（DB連動）はフェーズ5〜8で順番に接続します。
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveMenu("dashboard")}
+                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-2 rounded-lg flex-shrink-0"
+                  >
+                    ダッシュボードへ戻る
+                  </button>
+                </div>
+              )}
+
+              {/* 12カラム・レスポンシブグリッド（中央8カラム ＋ 右4カラム） */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+                {/* 中央エリア（8カラム分） */}
+                <div className="xl:col-span-8 space-y-5">
+                  {/* C. 中央上部：検索順位マップパネル */}
+                  <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-base sm:text-lg font-bold text-white">エリア別 検索順位マップ</h2>
+                          <span className="text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                            デモ計測データ
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          店舗所在地: {currentStore.address}
+                        </p>
+                      </div>
+
+                      {/* キーワード選択・測定日表示 */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value={selectedKwIndex}
+                          onChange={(e) => setSelectedKwIndex(Number(e.target.value))}
+                          className="bg-navy-800 border border-slate-700 text-xs text-white rounded-lg px-3 py-2 font-medium"
+                        >
+                          {currentStore.keywords.map((kw, i) => (
+                            <option key={kw.id} value={i}>🔑 {kw.word}</option>
+                          ))}
+                        </select>
+                        <div className="bg-navy-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-3 py-2">
+                          📅 測定日: {currentKeyword.date}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* マップ表示部（未連携時は明確な未接続表示を出す） */}
+                    {currentStore.mapConnected && currentKeyword.pins.length > 0 ? (
+                      <div className="relative w-full h-72 sm:h-80 rounded-xl overflow-hidden border border-slate-700 bg-[#162238]">
+                        {/* 地図風グリッド背景（CSS描画） */}
+                        <div
+                          className="absolute inset-0 opacity-25"
+                          style={{
+                            backgroundImage:
+                              "linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)",
+                            backgroundSize: "36px 36px"
+                          }}
+                        />
+                        {/* ヒートマップ風エリアカラー装飾 */}
+                        <div className="absolute top-1/4 left-1/3 w-48 h-48 bg-emerald-500/25 rounded-full blur-2xl pointer-events-none" />
+                        <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+
+                        {/* 道路・河川風の装飾ライン */}
+                        <div className="absolute inset-x-0 top-1/2 h-1 bg-slate-600/40 -rotate-6 pointer-events-none" />
+                        <div className="absolute inset-y-0 left-1/2 w-1 bg-slate-600/40 rotate-12 pointer-events-none" />
+
+                        {/* 左上キーワードバッジ */}
+                        <div className="absolute top-3 left-3 bg-navy-950/90 border border-slate-700 rounded-xl px-3 py-2 shadow-lg">
+                          <div className="text-[11px] text-slate-400">選択キーワード</div>
+                          <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-orange-400 inline-block"></span>
+                            {currentKeyword.word}
+                          </div>
+                        </div>
+
+                        {/* 右上平均順位バッジ */}
+                        <div className="absolute top-3 right-3 bg-navy-950/90 border border-slate-700 rounded-xl px-3 py-2 text-right shadow-lg">
+                          <div className="text-[11px] text-slate-400">エリア平均順位</div>
+                          <div className="text-sm sm:text-base font-black text-emerald-400">
+                            {currentKeyword.avgRank}位
+                            <span className="text-[11px] text-cyan-300 font-normal ml-1.5">
+                              (前回 {currentKeyword.prevRank}位)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 順位ピン配置 */}
+                        {currentKeyword.pins.map(pin => (
+                          <div
+                            key={pin.id}
+                            style={{ top: pin.top, left: pin.left }}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 group cursor-pointer"
+                          >
+                            <div
+                              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 flex items-center justify-center font-black text-xs sm:text-sm shadow-lg transition transform group-hover:scale-125 ${getPinColor(pin.rank)}`}
+                            >
+                              {pin.rank}
+                            </div>
+                            <div className="opacity-0 group-hover:opacity-100 transition bg-navy-950 text-white text-[10px] px-2 py-1 rounded border border-slate-700 whitespace-nowrap absolute left-1/2 -translate-x-1/2 -top-7 pointer-events-none z-20">
+                              {pin.area}: {pin.rank}位
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* 凡例バー */}
+                        <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 bg-navy-950/90 border border-slate-800 rounded-lg px-3 py-1.5 text-[11px]">
+                          <div className="flex items-center gap-3">
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>1〜3位(上位表示)</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block"></span>4〜10位</span>
+                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>11位以下</span>
+                          </div>
+                          <span className="text-slate-400">※ピンをタップで地点名表示</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* 地図データ未連携時の明確な表示（要件C準拠） */
+                      <div className="w-full h-72 rounded-xl border-2 border-dashed border-slate-700 bg-navy-950/60 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="text-3xl mb-2">🗺️</div>
+                        <h3 className="text-sm sm:text-base font-bold text-amber-300">
+                          グリッド地図データが未連携です
+                        </h3>
+                        <p className="text-xs text-slate-400 max-w-md mt-1 leading-relaxed">
+                          この店舗はエリア座標計測データまたは地図APIが未接続のため、マップピンを表示していません（架空の順位データは表示しません）。キーワード全体の平均順位（手動記録）：<strong className="text-white">{currentKeyword.avgRank}位</strong>
+                        </p>
+                      </div>
+                    )}
+                  </section>
+
+                  {/* D. 中央下部：店舗の最適化状況（2カラムカード） */}
+                  <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* 左：プロフィール充実度 */}
+                    <div className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <h3 className="text-sm sm:text-base font-bold text-white">プロフィール充実度</h3>
+                          <button
+                            onClick={() => setShowCriteriaModal(!showCriteriaModal)}
+                            className="text-[11px] text-cyan-400 underline hover:text-cyan-300"
+                          >
+                            算出基準を表示
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mb-4">
+                          ※Google公式スコアではなく、Re.Start独自のMEO評価基準による算出値です。
+                        </p>
+
+                        {showCriteriaModal && (
+                          <div className="mb-4 p-3 rounded-xl bg-navy-950 border border-cyan-500/40 text-[11px] text-slate-300 space-y-1">
+                            <div className="font-bold text-cyan-300 mb-1">【Re.Start 充実度評価基準（各100点満点）】</div>
+                            <div>・基本情報：店名、カテゴリ、住所、電話、URL、説明文300字以上</div>
+                            <div>・営業情報：通常営業時間、祝日等の特別営業時間、属性設定</div>
+                            <div>・写真充実度：外観・内観・スタッフ写真計20枚以上＋月次更新</div>
+                            <div>・メニュー：写真・価格付きコース/商品の5件以上の登録</div>
+                          </div>
+                        )}
+
+                        <div className="space-y-4">
+                          {currentStore.profileScores.map(item => (
+                            <div key={item.id}>
+                              <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="font-medium text-slate-200">{item.label}</span>
+                                <span className="font-bold text-white">{item.score}%</span>
+                              </div>
+                              <div className="w-full h-2.5 bg-navy-800 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${item.color}`}
+                                  style={{ width: `${item.score}%` }}
+                                />
+                              </div>
+                              <div className="text-[11px] text-slate-400 mt-1">{item.note}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-5 pt-3 border-t border-slate-800 flex items-center justify-between">
+                        <span className="text-xs text-slate-400">GBP API連携状態:</span>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                          currentStore.gbpConnected
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                        }`}>
+                          {currentStore.gbpConnected ? "● OAuth連携済（デモ）" : "▲ 未連携（手動モード）"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 右：Googleビジネスプロフィール最適化＆改善タスク */}
+                    <div className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h3 className="text-sm sm:text-base font-bold text-white">GBP最適化・改善タスク</h3>
+                            <p className="text-[11px] text-slate-400">タップで完了状態を切り替えできます</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center text-xs font-bold">
+                              ✓
+                            </span>
+                            <span className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-xs font-bold">
+                              !
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2.5 mt-3">
+                          {currentStore.tasks.map(task => (
+                            <div
+                              key={task.id}
+                              onClick={() => toggleTask(task.id)}
+                              className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 cursor-pointer transition ${
+                                task.done
+                                  ? "bg-navy-950/50 border-slate-800 text-slate-500 line-through"
+                                  : "bg-navy-800/90 border-slate-700 text-slate-100 hover:border-blue-500"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={task.done}
+                                onChange={() => {}}
+                                className="mt-0.5 h-4 w-4 rounded accent-blue-500"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium leading-snug">{task.title}</div>
+                              </div>
+                              <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                                task.priority === "高"
+                                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                  : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                              }`}>
+                                優先:{task.priority}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setActiveMenu("reports")}
+                        className="mt-5 w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs sm:text-sm py-2.5 rounded-xl shadow-lg shadow-blue-600/25 transition"
+                      >
+                        月次MEOレポート・改善提案書を確認
+                      </button>
+                    </div>
+                  </section>
+                </div>
+
+                {/* 右側エリア（4カラム分：E・F・G） */}
+                <div className="xl:col-span-4 space-y-5">
+                  {/* E. 右上部：口コミ管理サマリー */}
+                  <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm sm:text-base font-bold text-white">口コミ管理サマリー</h3>
+                      <span className="text-[11px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                        新着 +{currentStore.reviews.newCount}件
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="bg-navy-800/90 border border-slate-800 rounded-xl p-3">
+                        <div className="text-amber-400 text-sm tracking-widest">★★★★★</div>
+                        <div className="text-xl font-black text-white mt-1">
+                          {currentStore.reviews.avg} <span className="text-xs font-normal text-slate-400">/ 5.0</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          総口コミ数: {currentStore.reviews.total}件
+                        </div>
+                      </div>
+
+                      <div className="bg-navy-800/90 border border-slate-800 rounded-xl p-3">
+                        <div className="text-xs text-slate-300 font-semibold">返信ステータス</div>
+                        <div className="text-xl font-black text-cyan-400 mt-1">
+                          {currentStore.reviews.replied} <span className="text-xs font-normal text-slate-400">件返信済</span>
+                        </div>
+                        <div className="text-[11px] text-rose-400 font-semibold mt-0.5">
+                          未返信: {currentStore.reviews.unreplied}件
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 評価分布ミニバー */}
+                    <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                      {currentStore.reviews.dist.map(d => (
+                        <div key={d.star} className="flex items-center gap-2 text-[11px]">
+                          <span className="w-7 text-amber-400 font-bold">{d.star}</span>
+                          <div className="flex-1 h-2 bg-navy-800 rounded-full overflow-hidden">
+                            <div className={`h-full ${d.color}`} style={{ width: `${d.pct}%` }} />
+                          </div>
+                          <span className="w-9 text-right text-slate-300">{d.count}件</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {/* F. 右中央部：GBP実績グラフ */}
+                  <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm sm:text-base font-bold text-white">GBPパフォーマンス推移</h3>
+                      <span className="text-[10px] text-slate-400">過去6ヶ月（デモ）</span>
+                    </div>
+
+                    {/* 指標切り替えボタン */}
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {Object.entries(metricLabels).map(([k, info]) => (
+                        <button
+                          key={k}
+                          onClick={() => setMetricKey(k)}
+                          className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition ${
+                            metricKey === k
+                              ? "bg-blue-600 text-white"
+                              : "bg-navy-800 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          {info.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {currentStore.gbpConnected && currentStore.performance.length > 0 ? (
+                      <div>
+                        <div className="h-40 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-800">
+                          {currentStore.performance.map((pt, i) => {
+                            const val = pt[metricKey];
+                            const heightPct = Math.max(12, Math.round((val / maxMetricValue) * 100));
+                            return (
+                              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                                <span className="text-[10px] text-slate-300 font-bold">{val}</span>
+                                <div className="w-full bg-navy-800 rounded-t-lg h-28 flex items-end p-0.5">
+                                  <div
+                                    className={`w-full rounded-t-md transition-all duration-300 ${metricLabels[metricKey].color}`}
+                                    style={{ height: `${heightPct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex justify-between px-2 pt-2 text-[11px] text-slate-400">
+                          {currentStore.performance.map((pt, i) => (
+                            <span key={i} className="flex-1 text-center">{pt.month}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* 未連携時の捏造防止表示（要件F準拠） */
+                      <div className="h-44 rounded-xl border border-dashed border-slate-700 bg-navy-950/60 flex flex-col items-center justify-center p-4 text-center">
+                        <p className="text-xs font-bold text-amber-300">Google実績指標 未連携</p>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          GBP APIが未接続のため、検索表示数やルート検索数は表示していません。
+                        </p>
+                      </div>
+                    )}
+                  </section>
+
+                  {/* G. 右下部：口コミ・対策状況ドーナツゲージ */}
+                  <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                    <h3 className="text-sm sm:text-base font-bold text-white mb-3">口コミ返信率・対策進捗</h3>
+                    <div className="flex items-center justify-around gap-4">
+                      {/* ドーナツチャート（CSS Conic Gradient） */}
+                      <div
+                        className="w-28 h-28 rounded-full flex items-center justify-center relative shadow-inner"
+                        style={{
+                          background: `conic-gradient(#10B981 0% 65%, #06B6D4 65% 88%, #F59E0B 88% 100%)`
+                        }}
+                      >
+                        <div className="w-20 h-20 rounded-full bg-navy-900 flex flex-col items-center justify-center">
+                          <span className="text-[10px] text-slate-400">返信達成率</span>
+                          <span className="text-lg font-black text-white">{currentStore.reviews.replyRate}%</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span>
+                          <div>
+                            <div className="text-slate-300 font-semibold">高評価比率 (★4〜5)</div>
+                            <div className="text-white font-bold">{currentStore.reviews.positiveRate}%</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span>
+                          <div>
+                            <div className="text-slate-300 font-semibold">今月のGBP投稿実施</div>
+                            <div className="text-white font-bold">{currentStore.citations[4].value}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-amber-400 inline-block"></span>
+                          <div>
+                            <div className="text-slate-300 font-semibold">残タスク数</div>
+                            <div className="text-white font-bold">
+                              {currentStore.tasks.filter(t => !t.done).length}件
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
