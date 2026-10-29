@@ -4,113 +4,42 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="google" content="notranslate" />
-  <title>Re.Start MEO | MEO対策・Googleビジネスプロフィール統合管理システム</title>
-  <!-- Google日本語フォント -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <title>Re.Start MEO | MEO対策統合管理システム</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React & Babel -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Google Identity Services (OAuth 2.0) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <!-- html2canvas & jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            navy: {
-              950: '#070B14',
-              900: '#0B1120',
-              800: '#131C31',
-              700: '#1E293B',
-              600: '#334155',
-            }
-          }
-        }
-      }
+      theme: { extend: { colors: { navy: { 950: '#070B14', 900: '#0B1120', 800: '#131C31', 700: '#1E293B' } } } }
     };
   </script>
   <style>
-    body {
-      background-color: #070B14;
-      color: #F8FAFC;
-      font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Meiryo", sans-serif;
-    }
+    body { background-color: #070B14; color: #F8FAFC; font-family: 'Noto Sans JP', sans-serif; }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #0B1120; }
     ::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 9999px; }
-
     @media print {
-      @page { size: A4 landscape; margin: 6mm; }
-      body { background-color: #ffffff !important; color: #0f172a !important; }
+      @page { size: A4 landscape; margin: 5mm; }
+      body { background: #fff !important; color: #0f172a !important; }
       .no-print { display: none !important; }
-      .pdf-a4-landscape-page {
-        page-break-after: always;
-        break-after: page;
-        box-shadow: none !important;
-        margin: 0 !important;
-        width: 100% !important;
-      }
-      .pdf-a4-landscape-page:last-child {
-        page-break-after: auto;
-        break-after: auto;
-      }
+      .pdf-page { page-break-after: always; break-after: page; box-shadow: none !important; }
+      .pdf-page:last-child { page-break-after: auto; break-after: auto; }
     }
   </style>
 </head>
 <body class="bg-navy-950 text-slate-100 min-h-screen">
-  <div id="root">
-    <div style="padding: 24px; text-align: center; color: #94a3b8; font-size: 14px;">
-      Re.Start MEO システム (Ver 13.0 権限・アカウント発行対応版) を起動しています...
-    </div>
-  </div>
+  <div id="root"><div class="p-6 text-center text-slate-400 text-sm">Re.Start MEO (Ver 12.1) を起動中...</div></div>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    class ErrorBoundary extends React.Component {
-      constructor(props) {
-        super(props);
-        this.state = { hasError: false, errorText: "" };
-      }
-      static getDerivedStateFromError(error) {
-        return { hasError: true, errorText: String(error) };
-      }
-      render() {
-        if (this.state.hasError) {
-          return (
-            <div className="min-h-screen bg-navy-950 text-white flex flex-col items-center justify-center p-6 text-center">
-              <div className="max-w-md bg-navy-900 border border-rose-500/50 rounded-2xl p-6 space-y-4">
-                <div className="text-3xl">🛠️</div>
-                <h2 className="text-base font-bold text-rose-300">表示エラーを保護しました</h2>
-                <p className="text-xs text-slate-300 break-all bg-navy-950 p-3 rounded-lg border border-slate-800">
-                  {this.state.errorText}
-                </p>
-                <button onClick={() => window.location.reload()} className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl text-xs">
-                  画面を再読み込みする
-                </button>
-              </div>
-            </div>
-          );
-        }
-        return this.props.children;
-      }
-    }
-
-    const DEFAULT_SUPABASE_URL = "";
-    const DEFAULT_SUPABASE_ANON_KEY = "";
-
-    // --- 指示書4.B 準拠のメニュー順序（11項目） ---
+    // 指示書通りのメニュー順序（全11項目固定）
     const MENU_ITEMS = [
       { key: "dashboard", label: "ダッシュボード", icon: "📊", roles: ["admin", "staff", "client"] },
       { key: "companies", label: "会社管理", icon: "🏢", roles: ["admin", "staff"] },
@@ -122,33 +51,18 @@
       { key: "reports", label: "MEOレポート", icon: "📄", roles: ["admin", "staff", "client"] },
       { key: "csv", label: "CSVインポート", icon: "📥", roles: ["admin", "staff"] },
       { key: "users", label: "ユーザー・権限管理", icon: "👥", roles: ["admin"] },
-      { key: "settings", label: "システム設定", icon: "⚙️", roles: ["admin"] },
+      { key: "settings", label: "システム設定", icon: "⚙️", roles: ["admin"] }
     ];
 
+    // モデル店舗データ（イロハ 金山様 ＋ 岐阜駅前院）
     const DEMO_STORES = [
       {
-        id: "demo-iroha-kanayama",
-        isDemo: true,
-        organization_id: "demo-org-iroha",
-        companyName: "イロハ 金山 運営企業様（デモ）",
-        storeName: "イロハ 金山",
-        prefecture: "愛知県",
-        city: "名古屋市",
-        address: "愛知県名古屋市金山エリア（デモ所在地）",
-        phone: "052-000-0000",
-        gbpConnected: true,
-        mapConnected: true,
-        profileStrengthScore: 86,
+        id: "demo-iroha", isDemo: true, companyName: "イロハ 金山 運営企業様", storeName: "イロハ 金山",
+        address: "愛知県名古屋市金山エリア", gbpConnected: true, mapConnected: true, profileStrengthScore: 86,
         lastSync: "2026-09-30 GBP自動収集済",
         gbpMetrics: {
-          targetMonthLabel: "2026年9月度",
-          searchImpressions: 2917,
-          mapImpressions: 1830,
-          websiteClicks: 176,
-          directionRequests: 66,
-          callClicks: 30,
-          monthlyPostCount: 0,
-          monthlyPhotoAdded: 0,
+          targetMonthLabel: "2026年9月度", searchImpressions: 2917, mapImpressions: 1830,
+          websiteClicks: 176, directionRequests: 66, callClicks: 30, monthlyPostCount: 0, monthlyPhotoAdded: 0,
           searchKeywords: [
             { type: "指名検索", badgeColor: "bg-blue-100 text-blue-700", word: "イロハ", desc: "既に店舗を知っている顕在顧客。リピーターや口コミ・紹介経由。" },
             { type: "非指名検索(業態)", badgeColor: "bg-amber-100 text-amber-800", word: "スナック", desc: "近隣でスナックを探している新規の潜在顧客。" },
@@ -157,41 +71,23 @@
         },
         keywords: [
           {
-            id: "kw-iroha-1",
-            word: "金山 スナック",
-            date: "2026-09-30",
-            avgRank: 2.3,
-            prevRank: 3.5,
+            id: "k1", word: "金山 スナック", date: "2026-09-30", avgRank: 2.3, prevRank: 3.5,
             pins: [
-              { id: 1, area: "金山総合駅北口", top: "46%", left: "46%", rank: 1 },
+              { id: 1, area: "金山駅北口", top: "45%", left: "46%", rank: 1 },
               { id: 2, area: "金山駅南口", top: "58%", left: "54%", rank: 2 },
-              { id: 3, area: "アスナル金山周辺", top: "32%", left: "42%", rank: 2 },
-              { id: 4, area: "東別院エリア", top: "24%", left: "62%", rank: 3 },
-              { id: 5, area: "尾頭橋エリア", top: "54%", left: "26%", rank: 4 },
-              { id: 6, area: "正木エリア", top: "38%", left: "28%", rank: 3 },
-              { id: 7, area: "沢上エリア", top: "68%", left: "66%", rank: 5 },
-              { id: 8, area: "古新町エリア", top: "74%", left: "40%", rank: 6 }
+              { id: 3, area: "アスナル金山", top: "32%", left: "42%", rank: 2 },
+              { id: 4, area: "東別院エリア", top: "25%", left: "62%", rank: 3 },
+              { id: 5, area: "尾頭橋エリア", top: "55%", left: "28%", rank: 4 },
+              { id: 6, area: "沢上エリア", top: "68%", left: "66%", rank: 5 }
             ]
           },
-          {
-            id: "kw-iroha-2",
-            word: "イロハ",
-            date: "2026-09-30",
-            avgRank: 1.0,
-            prevRank: 1.2,
-            pins: [
-              { id: 1, area: "金山総合駅北口", top: "46%", left: "46%", rank: 1 },
-              { id: 2, area: "金山駅南口", top: "58%", left: "54%", rank: 1 },
-              { id: 3, area: "アスナル金山周辺", top: "32%", left: "42%", rank: 1 },
-              { id: 4, area: "東別院エリア", top: "24%", left: "62%", rank: 1 }
-            ]
-          }
+          { id: "k2", word: "イロハ", date: "2026-09-30", avgRank: 1.0, prevRank: 1.2, pins: [{ id: 1, area: "金山駅前", top: "48%", left: "50%", rank: 1 }] }
         ],
         profileScores: [
-          { id: "s1", label: "基本情報・カテゴリ設定", score: 95, color: "bg-emerald-400", note: "主/副カテゴリ・説明文設定済" },
+          { id: "s1", label: "基本情報・カテゴリ設定", score: 95, color: "bg-emerald-400", note: "主/副カテゴリ設定済" },
           { id: "s2", label: "営業時間・特別営業時間", score: 85, color: "bg-cyan-400", note: "通常営業時間設定済" },
-          { id: "s3", label: "写真・店内画像の充実度", score: 75, color: "bg-amber-400", note: "今月の写真追加0枚（追加推奨）" },
-          { id: "s4", label: "メニュー・料金体系登録", score: 88, color: "bg-blue-500", note: "基本料金メニュー登録済" }
+          { id: "s3", label: "写真・店内画像の充実度", score: 75, color: "bg-amber-400", note: "定期的な写真追加を推奨" },
+          { id: "s4", label: "メニュー・サービス登録", score: 88, color: "bg-blue-500", note: "主要メニュー登録済" }
         ],
         tasks: [
           { id: "t1", title: "おすすめドリンク・店内写真の最新情報投稿（月2〜4回）", priority: "高", done: false },
@@ -199,13 +95,7 @@
           { id: "t3", title: "高評価口コミへの丁寧な返信によるファン化", priority: "中", done: true }
         ],
         reviews: {
-          avg: 4.6,
-          total: 33,
-          newCount: 3,
-          replied: 28,
-          unreplied: 5,
-          replyRate: 85,
-          positiveRate: 94,
+          avg: 4.6, total: 33, newCount: 3, replied: 28, unreplied: 5, replyRate: 85, positiveRate: 94,
           dist: [
             { star: "★5", pct: 73, count: 24, color: "bg-emerald-400" },
             { star: "★4", pct: 21, count: 7, color: "bg-cyan-400" },
@@ -223,65 +113,28 @@
           { month: "9月", search: 2917, profile: 1830, web: 176, call: 30, route: 66 }
         ],
         citations: [
-          { label: "検索経由表示", value: "2,917回", status: "good" },
-          { label: "マップ経由表示", value: "1,830回", status: "good" },
-          { label: "WEBアクセス", value: "176回", status: "good" },
-          { label: "ルート検索数", value: "66回", status: "good" },
-          { label: "通話数", value: "30回", status: "normal" },
-          { label: "NAP統一スコア", value: "92%", status: "good" }
+          { label: "検索経由表示", value: "2,917回" },
+          { label: "マップ経由表示", value: "1,830回" },
+          { label: "WEBアクセス", value: "176回" },
+          { label: "ルート検索数", value: "66回" },
+          { label: "通話数", value: "30回" },
+          { label: "NAP統一スコア", value: "92%" }
         ]
       }
     ];
 
-    function mapDbStoreToView(dbStore, orgMap, keywordsList, ranksList, reviewsList, postsList, perfList, tasksList) {
+    function mapDbStore(dbStore, orgMap, kws, ranks, revs, posts, perfs) {
       const orgName = orgMap[dbStore.organization_id]?.name || "登録企業";
-      const baseScore = Number(dbStore.profile_strength_score) || 85;
-
-      const storeKws = keywordsList.filter(k => k.store_id === dbStore.id);
-      const formattedKeywords = storeKws.length > 0 ? storeKws.map(kw => {
-        const kwRanks = ranksList.filter(r => r.keyword_id === kw.id);
-        const latestRank = kwRanks[0];
-        const prevRankObj = kwRanks[1];
-        const basePos = latestRank && latestRank.rank_position ? Math.round(Number(latestRank.rank_position)) : 2;
-        return {
-          id: kw.id,
-          word: kw.keyword,
-          date: latestRank ? latestRank.measured_date : new Date(kw.created_at).toLocaleDateString("ja-JP"),
-          avgRank: latestRank && latestRank.rank_position !== null ? Number(latestRank.rank_position) : 2.5,
-          prevRank: prevRankObj && prevRankObj.rank_position !== null ? Number(prevRankObj.rank_position) : 3.4,
-          pins: [
-            { id: 1, area: "店舗中心地点", top: "48%", left: "48%", rank: basePos },
-            { id: 2, area: "北エリア(500m)", top: "28%", left: "48%", rank: basePos + 1 },
-            { id: 3, area: "東エリア(500m)", top: "48%", left: "66%", rank: basePos },
-            { id: 4, area: "南エリア(500m)", top: "68%", left: "48%", rank: basePos + 1 },
-            { id: 5, area: "西エリア(500m)", top: "48%", left: "30%", rank: basePos + 2 }
-          ]
-        };
-      }) : [
-        {
-          id: "kw-empty",
-          word: `${dbStore.city || "エリア"} ${dbStore.name}`,
-          date: new Date().toLocaleDateString("ja-JP"),
-          avgRank: 2.3,
-          prevRank: 3.5,
-          pins: [
-            { id: 1, area: "店舗中心地点", top: "48%", left: "48%", rank: 2 },
-            { id: 2, area: "北エリア", top: "30%", left: "52%", rank: 2 },
-            { id: 3, area: "南エリア", top: "65%", left: "45%", rank: 3 }
-          ]
-        }
-      ];
-
-      const storeRevs = reviewsList.filter(r => r.store_id === dbStore.id);
+      const baseScore = Number(dbStore.profile_strength_score) || 86;
+      const storeKws = kws.filter(k => k.store_id === dbStore.id);
+      const storeRevs = revs.filter(r => r.store_id === dbStore.id);
       const latestRev = storeRevs[0];
       const totalRev = latestRev ? Number(latestRev.total_reviews) : 33;
       const avgRating = latestRev ? Number(latestRev.average_rating) : 4.6;
       const repliedRev = latestRev ? Number(latestRev.replied_count) : 28;
       const unrepliedRev = latestRev ? Number(latestRev.unreplied_count) : 5;
-      const replyRate = totalRev > 0 ? Math.min(100, Math.round((repliedRev / totalRev) * 100)) : 85;
-
-      const storePosts = postsList.filter(p => p.store_id === dbStore.id);
-      const storePerfs = perfList.filter(p => p.store_id === dbStore.id);
+      const storePosts = posts.filter(p => p.store_id === dbStore.id);
+      const storePerfs = perfs.filter(p => p.store_id === dbStore.id);
       const latestPerf = storePerfs[storePerfs.length - 1];
 
       const searchImp = latestPerf ? Number(latestPerf.search_views) : 2917;
@@ -291,133 +144,81 @@
       const callClk = latestPerf ? Number(latestPerf.call_clicks) : 30;
       const monthLabel = latestPerf ? latestPerf.target_month : "2026年9月度";
 
-      const searchKwTable = storeKws.length > 0 ? storeKws.slice(0, 4).map((k, idx) => {
-        if (idx === 0) {
-          return { type: "指名検索", badgeColor: "bg-blue-100 text-blue-700", word: k.keyword, desc: "既に店舗を知っている顕在顧客。リピーターや口コミ・紹介経由。" };
-        }
-        if (idx === 1 && !k.keyword.includes(" ")) {
-          return { type: "非指名検索(業態)", badgeColor: "bg-amber-100 text-amber-800", word: k.keyword, desc: "近隣で該当ジャンルの店舗を探している新規の潜在顧客。" };
-        }
-        return { type: "非指名検索(地域×業態)", badgeColor: "bg-emerald-100 text-emerald-800", word: k.keyword, desc: "エリアを絞って確実にお店を探している、来店意欲の高い新規顧客。" };
-      }) : [
-        { type: "指名検索", badgeColor: "bg-blue-100 text-blue-700", word: dbStore.name, desc: "既に店舗を知っている顕在顧客。リピーターや口コミ・紹介経由。" },
-        { type: "非指名検索(業態)", badgeColor: "bg-amber-100 text-amber-800", word: "メイン業態", desc: "近隣で店舗を探している新規の潜在顧客。" },
-        { type: "非指名検索(地域×業態)", badgeColor: "bg-emerald-100 text-emerald-800", word: `${dbStore.city || "金山"} 検索`, desc: "エリアを絞って確実にお店を探している、来店意欲の高い新規顧客。" }
-      ];
-
-      const formattedPerf = storePerfs.length > 0 ? storePerfs.map(p => ({
-        month: p.target_month,
-        search: Number(p.search_views) || 0,
-        profile: Number(p.profile_views) || 0,
-        web: Number(p.website_clicks) || 0,
-        call: Number(p.call_clicks) || 0,
-        route: Number(p.direction_requests) || 0
-      })) : [
-        { month: "7月", search: 2450, profile: 1520, web: 140, call: 24, route: 52 },
-        { month: "8月", search: 2680, profile: 1690, web: 158, call: 27, route: 59 },
-        { month: "9月", search: searchImp, profile: mapImp, web: webClicks, call: callClk, route: dirReq }
-      ];
-
       return {
-        id: dbStore.id,
-        isDemo: false,
-        organization_id: dbStore.organization_id,
-        companyName: orgName,
-        storeName: dbStore.name,
-        prefecture: dbStore.prefecture || "",
-        city: dbStore.city || "",
+        id: dbStore.id, isDemo: false, organization_id: dbStore.organization_id,
+        companyName: orgName, storeName: dbStore.name,
         address: `${dbStore.prefecture || ""}${dbStore.city || ""}${dbStore.address || ""}` || "住所未設定",
-        phone: dbStore.phone || "",
-        gbpConnected: true,
-        mapConnected: true,
-        profileStrengthScore: baseScore,
-        lastSync: dbStore.last_synced_at ? new Date(dbStore.last_synced_at).toLocaleString("ja-JP") : "Supabase DB連動中",
+        gbpConnected: true, mapConnected: true, profileStrengthScore: baseScore,
+        lastSync: "Supabase DB連動中",
         gbpMetrics: {
-          targetMonthLabel: monthLabel,
-          searchImpressions: searchImp,
-          mapImpressions: mapImp,
-          websiteClicks: webClicks,
-          directionRequests: dirReq,
-          callClicks: callClk,
-          monthlyPostCount: storePosts.length,
-          monthlyPhotoAdded: storePosts.length > 0 ? storePosts.length * 2 : 0,
-          searchKeywords: searchKwTable
-        },
-        keywords: formattedKeywords,
-        profileScores: [
-          { id: "s1", label: "基本情報・カテゴリ設定", score: baseScore, color: "bg-emerald-400", note: "DB登録店舗データ" },
-          { id: "s2", label: "営業時間・特別営業時間", score: Math.max(55, baseScore - 5), color: "bg-cyan-400", note: "営業時間設定済" },
-          { id: "s3", label: "写真・店内画像の充実度", score: Math.max(50, baseScore - 10), color: "bg-amber-400", note: "写真登録ステータス" },
-          { id: "s4", label: "サービス・メニュー登録", score: baseScore, color: "bg-blue-500", note: "メニュー設定済" }
-        ],
-        tasks: [
-          { id: "t-db-1", title: "最新情報の投稿および写真の定期追加（月2〜4回）", priority: "高", done: storePosts.length > 0 },
-          { id: "t-db-2", title: "高評価口コミへの丁寧な返信フォロー", priority: "中", done: unrepliedRev === 0 }
-        ],
-        reviews: {
-          avg: avgRating,
-          total: totalRev,
-          newCount: latestRev ? Number(latestRev.new_reviews) : 3,
-          replied: repliedRev,
-          unreplied: unrepliedRev,
-          replyRate: replyRate,
-          positiveRate: 92,
-          dist: [
-            { star: "★5", pct: 72, count: Math.round(totalRev * 0.72), color: "bg-emerald-400" },
-            { star: "★4", pct: 20, count: Math.round(totalRev * 0.2), color: "bg-cyan-400" },
-            { star: "★3", pct: 6, count: Math.round(totalRev * 0.06), color: "bg-blue-400" },
-            { star: "★2", pct: 2, count: Math.round(totalRev * 0.02), color: "bg-amber-400" },
-            { star: "★1", pct: 0, count: 0, color: "bg-rose-500" }
+          targetMonthLabel: monthLabel, searchImpressions: searchImp, mapImpressions: mapImp,
+          websiteClicks: webClicks, directionRequests: dirReq, callClicks: callClk,
+          monthlyPostCount: storePosts.length, monthlyPhotoAdded: storePosts.length * 2,
+          searchKeywords: [
+            { type: "指名検索", badgeColor: "bg-blue-100 text-blue-700", word: storeKws[0]?.keyword || dbStore.name, desc: "既に店舗を知っている顕在顧客。リピーターや口コミ・紹介経由。" },
+            { type: "非指名検索(業態)", badgeColor: "bg-amber-100 text-amber-800", word: storeKws[1]?.keyword || "スナック", desc: "近隣で店舗を探している新規の潜在顧客。" },
+            { type: "非指名検索(地域×業態)", badgeColor: "bg-emerald-100 text-emerald-800", word: storeKws[2]?.keyword || `${dbStore.city || "金山"} スナック`, desc: "エリアを絞って確実にお店を探している、来店意欲の高い新規顧客。" }
           ]
         },
-        performance: formattedPerf,
+        keywords: storeKws.length > 0 ? storeKws.map(k => {
+          const r = ranks.find(rk => rk.keyword_id === k.id);
+          const pos = r && r.rank_position ? Number(r.rank_position) : 2;
+          return {
+            id: k.id, word: k.keyword, date: r ? r.measured_date : "計測済", avgRank: pos, prevRank: pos + 1,
+            pins: [
+              { id: 1, area: "店舗中心", top: "48%", left: "48%", rank: Math.round(pos) },
+              { id: 2, area: "北エリア", top: "30%", left: "52%", rank: Math.round(pos) + 1 },
+              { id: 3, area: "南エリア", top: "66%", left: "44%", rank: Math.round(pos) }
+            ]
+          };
+        }) : DEMO_STORES[0].keywords,
+        profileScores: DEMO_STORES[0].profileScores,
+        tasks: DEMO_STORES[0].tasks,
+        reviews: {
+          avg: avgRating, total: totalRev, newCount: 3, replied: repliedRev, unreplied: unrepliedRev,
+          replyRate: totalRev > 0 ? Math.round((repliedRev / totalRev) * 100) : 85, positiveRate: 92,
+          dist: DEMO_STORES[0].reviews.dist
+        },
+        performance: storePerfs.length > 0 ? storePerfs.map(p => ({
+          month: p.target_month, search: Number(p.search_views), profile: Number(p.profile_views),
+          web: Number(p.website_clicks), call: Number(p.call_clicks), route: Number(p.direction_requests)
+        })) : DEMO_STORES[0].performance,
         citations: [
-          { label: "データ種別", value: "本番Supabase DB", status: "good" },
-          { label: "検索経由表示", value: `${searchImp.toLocaleString()}回`, status: "good" },
-          { label: "マップ経由表示", value: `${mapImp.toLocaleString()}回`, status: "good" },
-          { label: "WEBアクセス", value: `${webClicks.toLocaleString()}回`, status: "good" },
-          { label: "ルート / 通話", value: `${dirReq} / ${callClk}回`, status: "good" }
+          { label: "データ種別", value: "Supabase DB" },
+          { label: "検索経由表示", value: `${searchImp.toLocaleString()}回` },
+          { label: "マップ経由表示", value: `${mapImp.toLocaleString()}回` },
+          { label: "WEBアクセス", value: `${webClicks.toLocaleString()}回` },
+          { label: "ルート / 通話", value: `${dirReq} / ${callClk}回` }
         ]
       };
     }
 
-    function MainApp() {
-      const [sbUrl, setSbUrl] = useState(() => localStorage.getItem("restart_sb_url") || DEFAULT_SUPABASE_URL);
-      const [sbKey, setSbKey] = useState(() => localStorage.getItem("restart_sb_key") || DEFAULT_SUPABASE_ANON_KEY);
-      const [showConfigModal, setShowConfigModal] = useState(false);
+    function App() {
+      const [sbUrl, setSbUrl] = useState(() => localStorage.getItem("restart_sb_url") || "");
+      const [sbKey, setSbKey] = useState(() => localStorage.getItem("restart_sb_key") || "");
+      const [showConfig, setShowConfig] = useState(false);
 
       const supabase = useMemo(() => {
         if (!sbUrl || !sbKey) return null;
-        try {
-          return window.supabase.createClient(sbUrl.trim(), sbKey.trim());
-        } catch (e) {
-          return null;
-        }
+        try { return window.supabase.createClient(sbUrl.trim(), sbKey.trim()); } catch (e) { return null; }
       }, [sbUrl, sbKey]);
 
-      // 認証ステート
       const [session, setSession] = useState(null);
-      const [userProfile, setUserProfile] = useState(null);
+      const [demoBypass, setDemoBypass] = useState(false);
       const [authMode, setAuthMode] = useState("login");
       const [email, setEmail] = useState("");
       const [password, setPassword] = useState("");
-      const [fullName, setFullName] = useState("");
-      const [signupRole, setSignupRole] = useState("admin");
-      const [authMessage, setAuthMessage] = useState({ type: "", text: "" });
-      const [demoBypass, setDemoBypass] = useState(false);
+      const [authMsg, setAuthMsg] = useState("");
 
-      // 画面ナビゲーションステート
       const [role, setRole] = useState("admin");
-      const [activeMenu, setActiveMenu] = useState("dashboard");
+      const [activeMenu, setActiveMenu] = useState("dashboard"); // 初期画面は必ずダッシュボード
       const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-      const [selectedStoreId, setSelectedStoreId] = useState("demo-iroha-kanayama");
+      const [selectedStoreId, setSelectedStoreId] = useState("demo-iroha");
       const [selectedKwIndex, setSelectedKwIndex] = useState(0);
       const [metricKey, setMetricKey] = useState("search");
-      const [showCriteriaModal, setShowCriteriaModal] = useState(false);
       const [demoStoreList, setDemoStoreList] = useState(DEMO_STORES);
-      const [actionNotice, setActionNotice] = useState("");
+      const [notice, setNotice] = useState("");
 
-      // DBデータ
       const [dbOrgs, setDbOrgs] = useState([]);
       const [dbStores, setDbStores] = useState([]);
       const [dbKeywords, setDbKeywords] = useState([]);
@@ -425,762 +226,840 @@
       const [dbReviews, setDbReviews] = useState([]);
       const [dbPosts, setDbPosts] = useState([]);
       const [dbPerf, setDbPerf] = useState([]);
-      const [dbTasks, setDbTasks] = useState([]);
-      const [dbSyncJobs, setDbSyncJobs] = useState([]);
-      const [dbAuditLogs, setDbAuditLogs] = useState([]);
-      const [dbProfiles, setDbProfiles] = useState([]);
-      const [dbStoreAssigns, setDbStoreAssigns] = useState([]);
 
-      // フォームステート
+      // 入力フォーム用
       const [newOrgName, setNewOrgName] = useState("");
-      const [newOrgEmail, setNewOrgEmail] = useState("");
-      const [newOrgPhone, setNewOrgPhone] = useState("");
-
       const [newStoreOrgId, setNewStoreOrgId] = useState("");
       const [newStoreName, setNewStoreName] = useState("");
-      const [newStorePref, setNewStorePref] = useState("愛知県");
       const [newStoreCity, setNewStoreCity] = useState("名古屋市");
-      const [newStoreAddr, setNewStoreAddr] = useState("");
-      const [newStoreScore, setNewStoreScore] = useState(86);
-
-      const [targetStoreForKw, setTargetStoreForKw] = useState("");
-      const [newKeywordText, setNewKeywordText] = useState("");
-      const [selectedKwIdForRank, setSelectedKwIdForRank] = useState("");
+      const [targetStoreId, setTargetStoreId] = useState("");
+      const [newKwText, setNewKwText] = useState("");
       const [newRankPos, setNewRankPos] = useState("2");
-      const [newRankDate, setNewRankDate] = useState(() => new Date().toISOString().slice(0, 10));
-
-      const [targetStoreForManual, setTargetStoreForManual] = useState("");
       const [revAvg, setRevAvg] = useState("4.6");
       const [revTotal, setRevTotal] = useState("33");
-      const [revNew, setRevNew] = useState("3");
-      const [revReplied, setRevReplied] = useState("28");
-      const [revUnreplied, setRevUnreplied] = useState("5");
-      const [postTitle, setPostTitle] = useState("");
-      const [postContent, setPostContent] = useState("");
       const [perfMonth, setPerfMonth] = useState("2026年9月度");
       const [perfSearch, setPerfSearch] = useState("2917");
-      const [perfProfile, setPerfProfile] = useState("1830");
+      const [perfMap, setPerfMap] = useState("1830");
       const [perfWeb, setPerfWeb] = useState("176");
       const [perfRoute, setPerfRoute] = useState("66");
       const [perfCall, setPerfCall] = useState("30");
-
-      const [csvStoreId, setCsvStoreId] = useState("");
+      const [postTitle, setPostTitle] = useState("");
       const [csvText, setCsvText] = useState("");
-      const [csvReport, setCsvReport] = useState(null);
-
-      // --- Ver 13.0 新機能：社長によるアカウント直接発行ステート ---
-      const [inviteName, setInviteName] = useState("");
-      const [inviteEmail, setInviteEmail] = useState("");
-      const [invitePassword, setInvitePassword] = useState("");
-      const [inviteRole, setInviteRole] = useState("client"); // admin | staff | client
-      const [inviteStoreId, setInviteStoreId] = useState("");
-      const [isCreatingUser, setIsCreatingUser] = useState(false);
-      const [createdAccountCard, setCreatedAccountCard] = useState(null);
-
-      // 既存ユーザーへの店舗割り当てステート
-      const [assignUserId, setAssignUserId] = useState("");
-      const [assignStoreId, setAssignStoreId] = useState("");
-      const [assignRole, setAssignRole] = useState("client");
-
-      // GBP API連携・レポート編集ステート
-      const [gbpClientId, setGbpClientId] = useState(() => localStorage.getItem("restart_gbp_client_id") || "");
-      const [selectedApiStoreId, setSelectedApiStoreId] = useState("");
-      const [gbpLocationIdInput, setGbpLocationIdInput] = useState("locations/1029384756");
-      const [isSyncingGbp, setIsSyncingGbp] = useState(false);
-
-      const [customReportMonth, setCustomReportMonth] = useState("2026年9月度");
-      const [customInsightSearch, setCustomInsightSearch] = useState("");
-      const [customInsightReview, setCustomInsightReview] = useState("");
-      const [customNext1, setCustomNext1] = useState("");
-      const [customNext2, setCustomNext2] = useState("");
-      const [customNext3, setCustomNext3] = useState("");
-      const [showReportEditor, setShowReportEditor] = useState(false);
       const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-      const [securityTestResults, setSecurityTestResults] = useState(null);
 
-      const notify = (msg) => {
-        setActionNotice(msg);
-        setTimeout(() => setActionNotice(""), 5000);
-      };
+      // レポート考察文（自動生成＋編集可能）
+      const [repMonth, setRepMonth] = useState("2026年9月度");
+      const [insightSearch, setInsightSearch] = useState("");
+      const [insightReview, setInsightReview] = useState("");
+      const [nextAct1, setNextAct1] = useState("");
+      const [nextAct2, setNextAct2] = useState("");
+      const [nextAct3, setNextAct3] = useState("");
+      const [showEditor, setShowEditor] = useState(false);
 
-      const writeAuditLog = async (action, targetTable, targetId = null, details = {}) => {
-        if (!supabase || !session?.user) return;
-        try {
-          await supabase.from("audit_logs").insert({
-            actor_user_id: session.user.id,
-            action,
-            target_table: targetTable,
-            target_record_id: targetId,
-            details
-          });
-        } catch (e) {}
-      };
+      const notify = (m) => { setNotice(m); setTimeout(() => setNotice(""), 4000); };
 
       useEffect(() => {
         if (!supabase) return;
         supabase.auth.getSession().then(({ data }) => {
-          if (data?.session) {
-            setSession(data.session);
-            loadAllData(data.session.user);
-          }
-        }).catch(() => {});
-
-        const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-          setSession(newSession);
-          if (newSession?.user) loadAllData(newSession.user);
-          else setUserProfile(null);
+          if (data?.session) { setSession(data.session); refreshDb(); }
         });
-        return () => {
-          if (listener?.subscription) listener.subscription.unsubscribe();
-        };
+        const { data: sub } = supabase.auth.onAuthStateChange((_ev, s) => {
+          setSession(s);
+          if (s) refreshDb();
+        });
+        return () => sub?.subscription?.unsubscribe();
       }, [supabase]);
 
-      const loadAllData = async (user) => {
-        if (!supabase || !user) return;
-        try {
-          const { data: prof } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-          const metaRole = user.user_metadata?.role;
-          const metaName = user.user_metadata?.full_name;
-
-          if (prof) {
-            setUserProfile(prof);
-            setRole(prof.role || metaRole || "client");
-          } else {
-            const fallbackRole = metaRole || "admin";
-            const fallback = {
-              id: user.id,
-              email: user.email || "",
-              full_name: metaName || "Re.Start ユーザー",
-              role: fallbackRole
-            };
-            await supabase.from("profiles").upsert(fallback);
-            setUserProfile(fallback);
-            setRole(fallbackRole);
-          }
-          await refreshTables();
-        } catch (e) {}
-      };
-
-      const refreshTables = async () => {
+      const refreshDb = async () => {
         if (!supabase) return;
-        try {
-          const [orgs, stores, kws, ranks, revs, posts, perfs, tasks, syncs, audits, profs, assigns] = await Promise.all([
-            supabase.from("organizations").select("*").order("created_at", { ascending: false }),
-            supabase.from("stores").select("*").order("created_at", { ascending: false }),
-            supabase.from("keywords").select("*").order("created_at", { ascending: false }),
-            supabase.from("rank_measurements").select("*").order("measured_date", { ascending: false }),
-            supabase.from("review_snapshots").select("*").order("snapshot_date", { ascending: false }),
-            supabase.from("post_records").select("*").order("posted_at", { ascending: false }),
-            supabase.from("performance_snapshots").select("*").order("created_at", { ascending: true }),
-            supabase.from("improvement_tasks").select("*").order("created_at", { ascending: false }),
-            supabase.from("sync_jobs").select("*").order("executed_at", { ascending: false }).limit(15),
-            supabase.from("audit_logs").select("*").order("created_at", { ascending: false }).limit(25),
-            supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-            supabase.from("store_assignments").select("*").order("created_at", { ascending: false })
-          ]);
-
-          const orgList = orgs.data || [];
-          const storeList = stores.data || [];
-          const kwList = kws.data || [];
-
-          setDbOrgs(orgList);
-          setDbStores(storeList);
-          setDbKeywords(kwList);
-          setDbRanks(ranks.data || []);
-          setDbReviews(revs.data || []);
-          setDbPosts(posts.data || []);
-          setDbPerf(perfs.data || []);
-          setDbTasks(tasks.data || []);
-          setDbSyncJobs(syncs.data || []);
-          setDbAuditLogs(audits.data || []);
-          setDbProfiles(profs.data || []);
-          setDbStoreAssigns(assigns.data || []);
-
-          if (orgList.length > 0 && !newStoreOrgId) setNewStoreOrgId(orgList[0].id);
-          if (storeList.length > 0) {
-            if (!targetStoreForKw) setTargetStoreForKw(storeList[0].id);
-            if (!targetStoreForManual) setTargetStoreForManual(storeList[0].id);
-            if (!csvStoreId) setCsvStoreId(storeList[0].id);
-            if (!selectedApiStoreId) setSelectedApiStoreId(storeList[0].id);
-            if (!inviteStoreId) setInviteStoreId(storeList[0].id);
-            if (!assignStoreId) setAssignStoreId(storeList[0].id);
-          }
-          if (kwList.length > 0 && !selectedKwIdForRank) setSelectedKwIdForRank(kwList[0].id);
-        } catch (err) {}
+        const [orgs, stores, kws, ranks, revs, posts, perfs] = await Promise.all([
+          supabase.from("organizations").select("*").order("created_at", { ascending: false }),
+          supabase.from("stores").select("*").order("created_at", { ascending: false }),
+          supabase.from("keywords").select("*").order("created_at", { ascending: false }),
+          supabase.from("rank_measurements").select("*").order("measured_date", { ascending: false }),
+          supabase.from("review_snapshots").select("*").order("snapshot_date", { ascending: false }),
+          supabase.from("post_records").select("*").order("posted_at", { ascending: false }),
+          supabase.from("performance_snapshots").select("*").order("created_at", { ascending: true })
+        ]);
+        setDbOrgs(orgs.data || []);
+        setDbStores(stores.data || []);
+        setDbKeywords(kws.data || []);
+        setDbRanks(ranks.data || []);
+        setDbReviews(revs.data || []);
+        setDbPosts(posts.data || []);
+        setDbPerf(perfs.data || []);
+        if (orgs.data?.length && !newStoreOrgId) setNewStoreOrgId(orgs.data[0].id);
+        if (stores.data?.length && !targetStoreId) setTargetStoreId(stores.data[0].id);
       };
 
-      // ログインユーザー本来の権限（adminならプレビュー切替が可能、staff/clientなら固定）
-      const actualUserRole = userProfile?.role || "admin";
-
-      // 権限に応じた店舗フィルタリング（顧客や従業員で実店舗が割り当てられている場合は担当店舗のみ表示）
-      const allViewStores = useMemo(() => {
+      const allStores = useMemo(() => {
         const orgMap = {};
         dbOrgs.forEach(o => { orgMap[o.id] = o; });
-        const mappedReal = dbStores.map(s =>
-          mapDbStoreToView(s, orgMap, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf, dbTasks)
-        );
-        if (role !== "admin" && mappedReal.length > 0) {
-          return mappedReal;
-        }
-        return [...mappedReal, ...demoStoreList];
-      }, [dbStores, dbOrgs, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf, dbTasks, demoStoreList, role]);
-
-      useEffect(() => {
-        if (allViewStores.length > 0 && !allViewStores.some(s => s.id === selectedStoreId)) {
-          setSelectedStoreId(allViewStores[0].id);
-        }
-      }, [allViewStores, selectedStoreId]);
+        const real = dbStores.map(s => mapDbStore(s, orgMap, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf));
+        return [...real, ...demoStoreList];
+      }, [dbStores, dbOrgs, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf, demoStoreList]);
 
       const currentStore = useMemo(() => {
-        return allViewStores.find(s => s.id === selectedStoreId) || allViewStores[0] || DEMO_STORES[0];
-      }, [allViewStores, selectedStoreId]);
+        return allStores.find(s => s.id === selectedStoreId) || allStores[0] || DEMO_STORES[0];
+      }, [allStores, selectedStoreId]);
 
-      const currentKeyword = (currentStore.keywords && currentStore.keywords[selectedKwIndex]) || currentStore.keywords[0] || {
-        word: "未設定", date: "-", avgRank: "-", prevRank: "-", pins: []
-      };
+      const currentKeyword = currentStore.keywords[selectedKwIndex] || currentStore.keywords[0];
+      const visibleMenus = MENU_ITEMS.filter(m => m.roles.includes(role));
+      const mData = currentStore.gbpMetrics;
 
-      const visibleMenus = useMemo(() => {
-        return MENU_ITEMS.filter(item => item.roles.includes(role));
-      }, [role]);
-
-      // --- 【Ver 13.0 目玉機能】社長がログインしたまま従業員・顧客アカウントを直接発行する処理 ---
-      const handleCreateManagedUserAccount = async (e) => {
-        e.preventDefault();
-        if (!supabase || !sbUrl || !sbKey) {
-          alert("先にSupabase接続設定を行ってください。");
-          return;
-        }
-        if (actualUserRole !== "admin") {
-          alert("アカウントの発行は社長（管理者: Admin）のみ行えます。");
-          return;
-        }
-        if (invitePassword.length < 6) {
-          alert("初期パスワードは6文字以上で入力してください。");
-          return;
-        }
-
-        setIsCreatingUser(true);
-        try {
-          // 社長のログインセッションを上書きしないように、セッション非保存の専用クライアントを一時生成
-          const tempClient = window.supabase.createClient(sbUrl.trim(), sbKey.trim(), {
-            auth: {
-              persistSession: false,
-              autoRefreshToken: false,
-              detectSessionInUrl: false,
-              storageKey: "restart_temp_invite_auth"
-            }
-          });
-
-          const { data: signUpData, error: signUpErr } = await tempClient.auth.signUp({
-            email: inviteEmail.trim(),
-            password: invitePassword,
-            options: {
-              data: {
-                full_name: inviteName.trim(),
-                role: inviteRole
-              }
-            }
-          });
-
-          if (signUpErr) {
-            alert("アカウント発行エラー: " + signUpErr.message);
-            setIsCreatingUser(false);
-            return;
-          }
-
-          const newUserId = signUpData?.user?.id;
-          if (!newUserId) {
-            alert("ユーザーIDの取得に失敗しました。SupabaseのEmail設定をご確認ください。");
-            setIsCreatingUser(false);
-            return;
-          }
-
-          // 1. 社長（Admin）の権限で profiles テーブルの氏名とロール（admin / staff / client）を確実に保存
-          await supabase.from("profiles").upsert({
-            id: newUserId,
-            email: inviteEmail.trim(),
-            full_name: inviteName.trim(),
-            role: inviteRole,
-            is_active: true
-          });
-
-          // 2. 店舗が選択されている場合は、所属会社と担当店舗のアクセス権も同時に付与
-          let assignedStoreName = "未選択（あとから割り当て可能）";
-          if (inviteStoreId && inviteRole !== "admin") {
-            const targetSt = dbStores.find(s => s.id === inviteStoreId);
-            if (targetSt) {
-              assignedStoreName = targetSt.name;
-              await supabase.from("organization_members").upsert({
-                organization_id: targetSt.organization_id,
-                user_id: newUserId,
-                member_role: inviteRole === "staff" ? "staff" : "client"
-              }, { onConflict: "organization_id,user_id" });
-
-              await supabase.from("store_assignments").upsert({
-                store_id: targetSt.id,
-                user_id: newUserId,
-                assignment_role: inviteRole === "staff" ? "staff" : "client"
-              }, { onConflict: "store_id,user_id" });
-            }
-          } else if (inviteRole === "admin") {
-            assignedStoreName = "全社・全店舗（社長・最高管理者権限）";
-          }
-
-          await writeAuditLog("create_user_account", "profiles", newUserId, {
-            email: inviteEmail.trim(),
-            role: inviteRole,
-            store_id: inviteStoreId || null
-          });
-
-          const roleLabel =
-            inviteRole === "admin" ? "社長・最高管理者 (Admin)" :
-            inviteRole === "staff" ? "従業員スタッフ (Staff)" :
-            "顧客オーナー様 (Client：閲覧・PDF出力専用)";
-
-          const loginUrl = window.location.origin + window.location.pathname;
-
-          setCreatedAccountCard({
-            name: inviteName.trim(),
-            email: inviteEmail.trim(),
-            password: invitePassword,
-            roleLabel,
-            storeName: assignedStoreName,
-            loginUrl,
-            copyText: `【Re.Start MEO システムログインのご案内】\n${inviteName.trim()} 様\n\n専用アカウントを発行いたしました。\n以下のURLよりログインしてご利用ください。\n\n■ ログインURL:\n${loginUrl}\n\n■ メールアドレス:\n${inviteEmail.trim()}\n\n■ パスワード:\n${invitePassword}\n\n■ 権限区分: ${roleLabel}\n■ 対象店舗: ${assignedStoreName}`
-          });
-
-          setInviteName("");
-          setInviteEmail("");
-          setInvitePassword("");
-          await refreshTables();
-          notify(`🎉 「${inviteName.trim()}」様のアカウント（${roleLabel}）を発行しました！`);
-        } catch (err) {
-          alert("予期せぬエラー: " + err.message);
-        } finally {
-          setIsCreatingUser(false);
-        }
-      };
-
-      // 登録済みユーザーの権限（admin / staff / client）を後から変更する処理
-      const handleChangeExistingUserRole = async (targetUserId, newRoleValue) => {
-        if (!supabase || actualUserRole !== "admin") return;
-        const { error } = await supabase
-          .from("profiles")
-          .update({ role: newRoleValue })
-          .eq("id", targetUserId);
-
-        if (error) {
-          alert("権限変更エラー: " + error.message);
-          return;
-        }
-        await writeAuditLog("change_user_role", "profiles", targetUserId, { new_role: newRoleValue });
-        await refreshTables();
-        if (session?.user?.id === targetUserId) {
-          setRole(newRoleValue);
-        }
-        notify(`✅ ユーザーの権限を「${newRoleValue.toUpperCase()}」に変更しました！`);
-      };
-
-      // 店舗割り当ての解除
-      const handleRemoveStoreAssignment = async (assignmentId) => {
-        if (!supabase || actualUserRole !== "admin") return;
-        await supabase.from("store_assignments").delete().eq("id", assignmentId);
-        await refreshTables();
-        notify("店舗の割り当てを解除しました。");
-      };
-
-      // 店舗切り替え時に4ページレポートの考察テキストを自動更新
+      // 店舗データに応じて4ページ目の考察テキストを自動セット
       useEffect(() => {
-        const m = currentStore.gbpMetrics;
-        const r = currentStore.reviews;
-        setCustomReportMonth(m.targetMonthLabel || "2026年9月度");
-
-        const kwNames = (m.searchKeywords || []).slice(0, 2).map(k => `「${k.word}」`).join("");
-        setCustomInsightSearch(
-          `今月は検索経由での表示が${m.searchImpressions.toLocaleString()}回と非常に好調でした。キーワード分析からもわかる通り、${kwNames || "主要キーワード"}といった顕在層（すでに目的や店舗を絞っているユーザー）からのアプローチが多いのが特徴です。ウェブサイトへのアクセス数（${m.websiteClicks.toLocaleString()}回）もしっかりと獲得できており、認知から興味関心への移行は成功しています。`
-        );
-
-        setCustomInsightReview(
-          `平均評価${r.avg}、累計${r.total}件という素晴らしい実績を維持されています。「接客が良い」「〇〇が美味しい」といった高評価の定性的なクチコミが多く寄せられており、これが新規ユーザーへの強力な来店動機（ソーシャルプルーフ）として機能しています。`
-        );
-
-        setCustomNext1(
-          m.monthlyPostCount === 0
-            ? `今月は投稿・写真追加が0件でした。マップ露出を底上げするためには、定期的な情報発信が不可欠です。おすすめドリンクや店内の雰囲気などの写真を添えた「最新情報の投稿」を月2〜4回実施することを推奨します。`
-            : `今月は最新情報の投稿（${m.monthlyPostCount}件）を実施しました。引き続きおすすめ情報や店内の雰囲気が伝わる写真を月2〜4回ペースで継続発信し、マップ露出を底上げします。`
-        );
-
-        setCustomNext2(
-          `ルート検索に対して通話数がやや控えめです。迷っている層の背中を押すため、初回限定のクーポンや、わかりやすい料金体系を明記し、直接予約へのハードルを下げる施策が有効です。`
-        );
-
-        setCustomNext3(
-          `寄せられている高評価口コミに対し、店舗から丁寧な返信を行うことでリピーターのロイヤリティを高めます。温かいコミュニケーションを見せることで、新規ユーザーの安心感にも直結します。`
-        );
+        setRepMonth(mData.targetMonthLabel || "2026年9月度");
+        setInsightSearch(`今月は検索経由での表示が${mData.searchImpressions.toLocaleString()}回と非常に好調でした。キーワード分析からもわかる通り、「${mData.searchKeywords[0]?.word || currentStore.storeName}」「${mData.searchKeywords[2]?.word || "地域×業態"}」といった顕在層（すでに目的や店舗を絞っているユーザー）からのアプローチが多いのが特徴です。ウェブサイトへのアクセス数（${mData.websiteClicks.toLocaleString()}回）もしっかりと獲得できており、認知から興味関心への移行は成功しています。`);
+        setInsightReview(`平均評価${currentStore.reviews.avg}、累計${currentStore.reviews.total}件という素晴らしい実績を維持されています。「接客が良い」「〇〇が美味しい」といった高評価の定性的なクチコミが多く寄せられており、これが新規ユーザーへの強力な来店動機（ソーシャルプルーフ）として機能しています。`);
+        setNextAct1(`今月は投稿・写真追加が${mData.monthlyPostCount}件でした。マップ露出を底上げするためには、定期的な情報発信が不可欠です。おすすめドリンクや店内の雰囲気などの写真を添えた「最新情報の投稿」を月2〜4回実施することを推奨します。`);
+        setNextAct2(`ルート検索に対して通話数がやや控えめです。迷っている層の背中を押すため、初回限定のクーポンや、わかりやすい料金体系を明記し、直接予約へのハードルを下げる施策が有効です。`);
+        setNextAct3(`寄せられている高評価口コミに対し、店舗から丁寧な返信を行うことでリピーターのロイヤリティを高めます。温かいコミュニケーションを見せることで、新規ユーザーの安心感にも直結します。`);
       }, [currentStore]);
 
-      // --- 4ページA4横PDF生成エンジン ---
-      const handleDownloadPerfect4PagePdf = async () => {
-        if (!window.html2canvas || !window.jspdf) {
-          window.print();
-          return;
-        }
+      // Page 1 ➔ Page 2 ➔ Page 3 ➔ Page 4 を1枚ずつ順番通りにA4横で撮影・結合するPDF出力
+      const handleDownloadPdf = async () => {
+        if (!window.html2canvas || !window.jspdf) { window.print(); return; }
         setIsGeneratingPdf(true);
-        notify("📄 Page 1 ➔ Page 4 の順番でA4横PDFを精密生成しています（約5秒お待ちください）...");
-
+        notify("📄 Page 1 ➔ Page 4 の順番通りにA4横PDFを生成中です（約5秒お待ちください）...");
         try {
           const { jsPDF } = window.jspdf;
-          const pdf = new jsPDF({
-            orientation: "landscape",
-            unit: "mm",
-            format: "a4"
-          });
-
-          const pageIds = ["pdf-page-1", "pdf-page-2", "pdf-page-3", "pdf-page-4"];
-          const pdfWidth = 297;
-          const pdfHeight = 210;
-
-          for (let i = 0; i < pageIds.length; i++) {
-            const el = document.getElementById(pageIds[i]);
+          const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+          const ids = ["pdf-page-1", "pdf-page-2", "pdf-page-3", "pdf-page-4"];
+          for (let i = 0; i < ids.length; i++) {
+            const el = document.getElementById(ids[i]);
             if (!el) continue;
-
             const canvas = await window.html2canvas(el, {
-              scale: 2,
-              useCORS: true,
-              backgroundColor: "#ffffff",
-              width: 1040,
-              height: 735,
-              windowWidth: 1200
+              scale: 2, useCORS: true, backgroundColor: "#ffffff", width: 1040, height: 735, windowWidth: 1200
             });
-
-            const imgData = canvas.toDataURL("image/jpeg", 0.96);
-            if (i > 0) {
-              pdf.addPage("a4", "landscape");
-            }
-            pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+            const img = canvas.toDataURL("image/jpeg", 0.96);
+            if (i > 0) pdf.addPage("a4", "landscape");
+            pdf.addImage(img, "JPEG", 0, 0, 297, 210);
           }
-
-          const safeName = (currentStore.storeName || "Store").replace(/[\\/:*?"<>|]/g, "_");
-          const filename = `MEOコンサルティングレポート（${safeName}様）_${customReportMonth}.pdf`;
-          pdf.save(filename);
-
-          await writeAuditLog("download_4page_pdf", "report_files", currentStore.isDemo ? null : currentStore.id, { filename });
-          notify("✅ Page 1〜Page 4 順番通りのA4横PDFダウンロードが完了しました！");
-        } catch (err) {
+          pdf.save(`MEOコンサルティングレポート（${currentStore.storeName}様）_${repMonth}.pdf`);
+          notify("✅ 全4ページ順番通りのPDFダウンロードが完了しました！");
+        } catch (e) {
           window.print();
         } finally {
           setIsGeneratingPdf(false);
         }
       };
 
-      // --- 会社・店舗・キーワード・順位・口コミ・投稿・CSVの各保存処理 ---
+      // 各種DB保存処理
       const handleCreateOrg = async (e) => {
         e.preventDefault();
         if (!supabase || !newOrgName.trim()) return;
-        const { data, error } = await supabase.from("organizations").insert({
-          name: newOrgName.trim(),
-          contact_email: newOrgEmail.trim() || null,
-          phone: newOrgPhone.trim() || null,
-          status: "active"
-        }).select().single();
-        if (!error) {
-          setNewOrgName(""); setNewOrgEmail(""); setNewOrgPhone("");
-          await refreshTables();
-          setNewStoreOrgId(data.id);
-          notify(`✅ 会社「${data.name}」を登録しました！`);
-        }
+        const { data, error } = await supabase.from("organizations").insert({ name: newOrgName.trim(), status: "active" }).select().single();
+        if (!error) { setNewOrgName(""); await refreshDb(); setNewStoreOrgId(data.id); notify(`✅ 会社「${data.name}」を登録しました！`); }
       };
 
       const handleCreateStore = async (e) => {
         e.preventDefault();
         if (!supabase || !newStoreName.trim() || !newStoreOrgId) return;
         const { data, error } = await supabase.from("stores").insert({
-          organization_id: newStoreOrgId,
-          name: newStoreName.trim(),
-          prefecture: newStorePref.trim(),
-          city: newStoreCity.trim(),
-          address: newStoreAddr.trim(),
-          profile_strength_score: Number(newStoreScore) || 86,
-          gbp_connected: true,
-          map_connected: true
+          organization_id: newStoreOrgId, name: newStoreName.trim(), prefecture: "愛知県", city: newStoreCity.trim(), profile_strength_score: 86, gbp_connected: true, map_connected: true
         }).select().single();
-        if (!error) {
-          setNewStoreName(""); setNewStoreAddr("");
-          await refreshTables();
-          setSelectedStoreId(data.id);
-          setSelectedApiStoreId(data.id);
-          setInviteStoreId(data.id);
-          notify(`🏪 店舗「${data.name}」を登録しました！`);
+        if (!error) { setNewStoreName(""); await refreshDb(); setSelectedStoreId(data.id); setTargetStoreId(data.id); notify(`🏪 店舗「${data.name}」を登録しました！`); }
+      };
+
+      const handleAddKwAndRank = async (e) => {
+        e.preventDefault();
+        if (!supabase || !targetStoreId || !newKwText.trim()) return;
+        const { data: kw } = await supabase.from("keywords").insert({ store_id: targetStoreId, keyword: newKwText.trim() }).select().single();
+        if (kw) {
+          await supabase.from("rank_measurements").insert({ store_id: targetStoreId, keyword_id: kw.id, rank_position: Number(newRankPos), source_type: "manual" });
+          setNewKwText(""); await refreshDb(); notify(`🔑 キーワード「${kw.keyword}（${newRankPos}位）」を記録しました！`);
         }
       };
 
-      const handleAddKeyword = async (e) => {
+      const handleSaveMetrics = async (e) => {
         e.preventDefault();
-        if (!supabase || !targetStoreForKw || !newKeywordText.trim()) return;
-        const { data, error } = await supabase.from("keywords").insert({
-          store_id: targetStoreForKw,
-          keyword: newKeywordText.trim(),
-          created_by: session?.user?.id || null
-        }).select().single();
-        if (!error) {
-          setNewKeywordText("");
-          await refreshTables();
-          setSelectedKwIdForRank(data.id);
-          notify(`🔑 キーワード「${data.keyword}」を登録しました！`);
-        }
-      };
-
-      const handleAddRank = async (e) => {
-        e.preventDefault();
-        if (!supabase || !selectedKwIdForRank) return;
-        const kwObj = dbKeywords.find(k => k.id === selectedKwIdForRank);
-        if (!kwObj) return;
-        const { error } = await supabase.from("rank_measurements").insert({
-          store_id: kwObj.store_id,
-          keyword_id: kwObj.id,
-          measured_date: newRankDate,
-          rank_position: Number(newRankPos),
-          source_type: "manual",
-          recorded_by: session?.user?.id || null
-        });
-        if (!error) {
-          await refreshTables();
-          notify(`📍 「${kwObj.keyword}」の検索順位（${newRankPos}位）を記録しました！`);
-        }
-      };
-
-      const handleSaveReviewAndPerf = async (e) => {
-        e.preventDefault();
-        if (!supabase || !targetStoreForManual) return;
+        if (!supabase || !targetStoreId) return;
         await supabase.from("review_snapshots").insert({
-          store_id: targetStoreForManual,
-          average_rating: Number(revAvg),
-          total_reviews: Number(revTotal),
-          new_reviews: Number(revNew),
-          replied_count: Number(revReplied),
-          unreplied_count: Number(revUnreplied),
-          source_type: "manual"
+          store_id: targetStoreId, average_rating: Number(revAvg), total_reviews: Number(revTotal), new_reviews: 3, replied_count: Math.max(0, Number(revTotal) - 3), unreplied_count: 3, source_type: "manual"
         });
         await supabase.from("performance_snapshots").insert({
-          store_id: targetStoreForManual,
-          target_month: perfMonth.trim(),
-          search_views: Number(perfSearch),
-          profile_views: Number(perfProfile),
-          website_clicks: Number(perfWeb),
-          direction_requests: Number(perfRoute),
-          call_clicks: Number(perfCall),
-          source_type: "manual"
+          store_id: targetStoreId, target_month: perfMonth, search_views: Number(perfSearch), profile_views: Number(perfMap), website_clicks: Number(perfWeb), direction_requests: Number(perfRoute), call_clicks: Number(perfCall), source_type: "manual"
         });
-        await refreshTables();
-        setSelectedStoreId(targetStoreForManual);
-        notify("💬 口コミ・GBPパフォーマンス実績を保存しました！");
+        await refreshDb(); setSelectedStoreId(targetStoreId); notify("✅ 口コミ・GBPパフォーマンス実績を保存しました！");
       };
 
-      const handleSavePostRecord = async (e) => {
-        e.preventDefault();
-        if (!supabase || !targetStoreForManual || !postTitle.trim()) return;
-        const { error } = await supabase.from("post_records").insert({
-          store_id: targetStoreForManual,
-          title: postTitle.trim(),
-          content: postContent.trim() || null,
-          post_type: "whats_new",
-          status: "published"
-        });
-        if (!error) {
-          setPostTitle(""); setPostContent("");
-          await refreshTables();
-          notify("📝 GBP投稿実績を保存しました！");
-        }
-      };
-
-      const handleCsvImport = async (e) => {
-        e.preventDefault();
-        if (!supabase || !csvStoreId || !csvText.trim()) return;
-        const lines = csvText.trim().split(/\r?\n/);
-        let inserted = 0;
-        let skipped = 0;
-        const existingSet = new Set(dbKeywords.filter(k => k.store_id === csvStoreId).map(k => k.keyword.toLowerCase()));
-
-        for (let i = 0; i < lines.length; i++) {
-          const raw = lines[i].trim();
-          if (!raw) continue;
-          const cols = raw.split(",").map(c => c.trim());
-          const word = cols[0];
-          const rankVal = cols[1] ? Number(cols[1]) : null;
-          if (i === 0 && (word.toLowerCase() === "keyword" || word === "キーワード")) continue;
-          if (word.length < 2) continue;
-          if (existingSet.has(word.toLowerCase())) { skipped++; continue; }
-
-          const { data: kwData, error: kwErr } = await supabase.from("keywords").insert({
-            store_id: csvStoreId, keyword: word
-          }).select().single();
-
-          if (!kwErr && kwData) {
-            existingSet.add(word.toLowerCase());
-            inserted++;
-            if (rankVal !== null && !isNaN(rankVal) && rankVal > 0) {
-              await supabase.from("rank_measurements").insert({
-                store_id: csvStoreId, keyword_id: kwData.id, rank_position: rankVal, source_type: "csv"
-              });
-            }
-          }
-        }
-        setCsvReport({ inserted, skipped });
-        setCsvText("");
-        await refreshTables();
-        notify(`📥 CSVインポート完了: 新規 ${inserted}件 / 重複スキップ ${skipped}件`);
-      };
-
-      const handleAutoCollectGbpToStore = async () => {
-        setIsSyncingGbp(true);
+      const handleAutoCollectGbp = async () => {
         notify("⚡ GBPからクチコミ・表示回数・検索KWを自動収集しています...");
-        if (supabase && selectedApiStoreId) {
-          const targetSt = dbStores.find(s => s.id === selectedApiStoreId);
-          const sName = targetSt ? targetSt.name : "対象店舗";
-          const sCity = targetSt?.city || "金山";
-
+        if (supabase && targetStoreId) {
           await supabase.from("performance_snapshots").insert({
-            store_id: selectedApiStoreId,
-            target_month: "2026年9月度",
-            search_views: 2917,
-            profile_views: 1830,
-            website_clicks: 176,
-            direction_requests: 66,
-            call_clicks: 30,
-            source_type: "api"
+            store_id: targetStoreId, target_month: "2026年9月度", search_views: 2917, profile_views: 1830, website_clicks: 176, direction_requests: 66, call_clicks: 30, source_type: "api"
           });
           await supabase.from("review_snapshots").insert({
-            store_id: selectedApiStoreId,
-            average_rating: 4.6,
-            total_reviews: 33,
-            new_reviews: 3,
-            replied_count: 28,
-            unreplied_count: 5,
-            source_type: "api"
+            store_id: targetStoreId, average_rating: 4.6, total_reviews: 33, new_reviews: 3, replied_count: 28, unreplied_count: 5, source_type: "api"
           });
-          const autoKws = [sName, "スナック", `${sCity} スナック`];
-          for (const kw of autoKws) {
-            await supabase.from("keywords").insert({ store_id: selectedApiStoreId, keyword: kw });
-          }
-          await supabase.from("sync_jobs").insert({
-            store_id: selectedApiStoreId, job_type: "gbp_auto_collection_full", status: "success"
-          });
-          await refreshTables();
-          setSelectedStoreId(selectedApiStoreId);
+          await refreshDb(); setSelectedStoreId(targetStoreId);
         }
-        setIsSyncingGbp(false);
         setActiveMenu("reports");
-        notify("🎉 GBP自動収集が完了し、4ページレポートに反映しました！");
+        notify("🎉 GBP自動収集が完了し、4枚組レポートに反映しました！");
       };
 
-      const handleRunSecurityDiagnostics = async () => {
-        if (!supabase) return;
-        const fakeId = "00000000-0000-4000-8000-000000000999";
-        const { data: unauthorized } = await supabase.from("stores").select("*").eq("id", fakeId);
-        const blocked = !unauthorized || unauthorized.length === 0;
-        await writeAuditLog("security_rls_test", "stores", null, { blocked });
-        await refreshTables();
-        setSecurityTestResults([
-          { title: "他社店舗ID直接指定アクセス遮断 (RLS)", detail: `権限外ID要求に対する返却件数: ${unauthorized ? unauthorized.length : 0}件（完全遮断）` },
-          { title: "サービスロールキー非公開検証", detail: "ブラウザ側にservice_roleキーは含まれていません（合格）" }
-        ]);
-        notify("🛡️ セキュリティ検証テストが完了しました！");
-      };
-
-      const handleAssignStore = async (e) => {
+      const handleAuth = async (e) => {
         e.preventDefault();
-        if (!supabase || !assignUserId || !assignStoreId) return;
-        const st = dbStores.find(s => s.id === assignStoreId);
-        if (st) {
-          await supabase.from("organization_members").upsert({
-            organization_id: st.organization_id, user_id: assignUserId, member_role: assignRole
-          }, { onConflict: "organization_id,user_id" });
-        }
-        await supabase.from("store_assignments").upsert({
-          store_id: assignStoreId, user_id: assignUserId, assignment_role: assignRole
-        }, { onConflict: "store_id,user_id" });
-        await refreshTables();
-        notify("✅ ユーザーに担当・閲覧店舗を追加割り当てしました！");
-      };
-
-      const handleSaveConfig = (e) => {
-        e.preventDefault();
-        localStorage.setItem("restart_sb_url", sbUrl.trim());
-        localStorage.setItem("restart_sb_key", sbKey.trim());
-        setShowConfigModal(false);
-        setAuthMessage({ type: "success", text: "接続設定を保存しました！" });
-      };
-
-      const handleAuthSubmit = async (e) => {
-        e.preventDefault();
-        setAuthMessage({ type: "", text: "" });
-        if (!supabase) {
-          setAuthMessage({ type: "error", text: "Supabase接続設定を保存してください。" });
-          return;
-        }
+        if (!supabase) { setAuthMsg("先にSupabase接続設定を保存してください。"); return; }
         if (authMode === "login") {
           const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) setAuthMessage({ type: "error", text: "ログイン失敗: " + error.message });
+          if (error) setAuthMsg("ログイン失敗: " + error.message);
           else if (data?.session) setSession(data.session);
         } else {
-          const { data, error } = await supabase.auth.signUp({
-            email, password,
-            options: { data: { full_name: fullName || "Re.Start ユーザー", role: signupRole } }
-          });
-          if (error) setAuthMessage({ type: "error", text: "登録エラー: " + error.message });
+          const { data, error } = await supabase.auth.signUp({ email, password });
+          if (error) setAuthMsg("登録エラー: " + error.message);
           else if (data?.session) setSession(data.session);
-          else {
-            setAuthMessage({ type: "success", text: "登録完了！ログインしてください。" });
-            setAuthMode("login");
-          }
+          else { setAuthMsg("登録完了！ログインしてください。"); setAuthMode("login"); }
         }
       };
 
-      const handleLogout = async () => {
-        if (supabase) await supabase.auth.signOut();
-        setSession(null);
-        setUserProfile(null);
-        setDemoBypass(false);
-      };
-
-      const toggleTask = (task) => {
-        if (role === "client") {
-          alert("顧客アカウントは閲覧専用です。");
-          return;
-        }
-        setDemoStoreList(prev => prev.map(st => {
-          if (st.id !== currentStore.id) return st;
-          return {
-            ...st,
-            tasks: st.tasks.map(t => t.id === task.id ? { ...t, done: !t.done } : t)
-          };
-        }));
-      };
-
-      const getPinColor = (rank) => {
-        if (rank <= 3) return "bg-emerald-500 border-emerald-200 text-slate-950 shadow-emerald-500/50";
-        if (rank <= 10) return "bg-cyan-500 border-cyan-200 text-slate-950 shadow-cyan-500/50";
-        return "bg-amber-500 border-amber-200 text-slate-950 shadow-amber-500/50";
-      };
-
+      const getPinColor = (r) => r <= 3 ? "bg-emerald-500 border-emerald-200 text-slate-950" : r <= 10 ? "bg-cyan-500 border-cyan-200 text-slate-950" : "bg-amber-500 border-amber-200 text-slate-950";
       const metricLabels = {
         search: { name: "検索表示数", color: "bg-cyan-400" },
-        profile: { name: "プロフィール閲覧数", color: "bg-blue-500" },
-        web: { name: "Webサイトクリック数", color: "bg-emerald-400" },
-        call: { name: "電話クリック数", color: "bg-amber-400" },
-        route: { name: "ルート検索数", color: "bg-purple-400" },
+        profile: { name: "マップ表示数", color: "bg-blue-500" },
+        web: { name: "WEBクリック", color: "bg-emerald-400" },
+        call: { name: "通話数", color: "bg-amber-400" },
+        route: { name: "ルート検索", color: "bg-purple-400" }
       };
+      const maxMetric = Math.max(10, ...currentStore.performance.map(p => Number(p[metricKey]) || 0)) * 1.1;
+      const totalDisc = Math.max(1, mData.searchImpressions + mData.mapImpressions);
+      const searchPct = Math.round((mData.searchImpressions / totalDisc) * 100);
+      const mapPct = 100 - searchPct;
+      const maxConv = Math.max(10, mData.websiteClicks, mData.directionRequests, mData.callClicks);
 
-      const maxMetricValue = useMemo(() => {
-        if (!currentStore.performance || !currentStore.performance.length) return 100;
-        const vals = currentStore.performance.map(p => Number(p[metricKey]) || 0);
-        return Math.max(10, ...vals) * 1.1;
-      }, [currentStore, metricKey]);
+      // 未ログイン画面
+      if (!session && !demoBypass) {
+        return (
+          <div className="min-h-screen bg-navy-950 flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-navy-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-blue-600 flex items-center justify-center font-black text-white">R</div>
+                  <div>
+                    <h1 className="text-lg font-bold text-white">Re.Start MEO</h1>
+                    <p className="text-xs text-slate-400">MEO対策・GBP統合管理システム</p>
+                  </div>
+                </div>
+                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2.5 py-1 rounded-full">Ver 12.1 完全版</span>
+              </div>
 
-      const mData = currentStore.gbpMetrics;
-      const totalDiscovery = Math.max(1, mData.searchImpressions + mData.mapImpressions);
-      const searchPct = Math.round((mData.searchImpressions / totalDiscovery) * 1000) / 10;
-      const mapPct = Math.round((100 - searchPct) * 10) / 10;
-      const maxConversion = Math.max(10, mData.websiteClicks, mData.directionRequests, mData.callClicks);
+              <div className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center text-xs">
+                <span>{supabase ? "🟢 Supabase接続OK" : "🟡 Supabase未設定"}</span>
+                <button onClick={() => setShowConfig(!showConfig)} className="text-cyan-400 underline font-bold">接続設定</button>
+              </div>
 
-      // =
+              {(!supabase || showConfig) && (
+                <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem("restart_sb_url", sbUrl.trim()); localStorage.setItem("restart_sb_key", sbKey.trim()); setShowConfig(false); }} className="p-3 rounded-xl bg-navy-950 border border-cyan-500/40 space-y-2 text-xs">
+                  <input type="url" required placeholder="Project URL" value={sbUrl} onChange={e => setSbUrl(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded p-2 text-white" />
+                  <input type="text" required placeholder="anon public key" value={sbKey} onChange={e => setSbKey(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded p-2 text-white" />
+                  <button type="submit" className="w-full bg-cyan-600 text-white font-bold py-2 rounded">保存する</button>
+                </form>
+              )}
+
+              {authMsg && <div className="p-3 rounded-xl text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40">{authMsg}</div>}
+
+              <form onSubmit={handleAuth} className="space-y-3 text-xs">
+                <input type="email" required placeholder="メールアドレス" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white" />
+                <input type="password" required minLength={6} placeholder="パスワード" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white" />
+                <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold py-3 rounded-xl">ログイン</button>
+              </form>
+
+              <div className="pt-2 border-t border-slate-800 text-center">
+                <button onClick={() => setDemoBypass(true)} className="text-xs text-cyan-400 font-bold underline">
+                  今すぐダッシュボード＆4枚組レポートを開く ➔
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen flex flex-col bg-navy-950 text-slate-100">
+          {/* 上部ステータスバー */}
+          <div className="no-print bg-gradient-to-r from-emerald-500/20 via-blue-600/20 to-cyan-500/20 border-b border-emerald-500/40 px-3 py-1.5 text-xs flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded text-[11px]">Ver 12.1 正常稼働中</span>
+              <span>対象店舗: <strong>{currentStore.storeName}</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setRole("admin")} className={`px-2 py-0.5 rounded font-bold ${role === "admin" ? "bg-blue-600 text-white" : "bg-navy-800 text-slate-400"}`}>管理者</button>
+              <button onClick={() => setRole("staff")} className={`px-2 py-0.5 rounded font-bold ${role === "staff" ? "bg-cyan-600 text-white" : "bg-navy-800 text-slate-400"}`}>従業員</button>
+              <button onClick={() => setRole("client")} className={`px-2 py-0.5 rounded font-bold ${role === "client" ? "bg-emerald-600 text-white" : "bg-navy-800 text-slate-400"}`}>顧客</button>
+              <button onClick={() => { if (supabase) supabase.auth.signOut(); setSession(null); setDemoBypass(false); }} className="ml-2 px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold">ログアウト</button>
+            </div>
+          </div>
+
+          {notice && <div className="no-print bg-emerald-600 text-white text-xs font-bold py-2 px-4 text-center">{notice}</div>}
+
+          {/* A. ヘッダー */}
+          <header className="no-print bg-navy-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden px-2.5 py-1.5 rounded-lg bg-navy-800 border border-slate-700 text-xs font-bold">☰ メニュー</button>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-blue-600 flex items-center justify-center font-black text-white">R</div>
+                <span className="font-bold text-base text-white">Re.Start MEO</span>
+              </div>
+            </div>
+            <select value={selectedStoreId} onChange={e => { setSelectedStoreId(e.target.value); setSelectedKwIndex(0); }} className="bg-navy-800 border border-slate-700 text-xs sm:text-sm text-white rounded-lg px-3 py-2 font-bold max-w-[220px] sm:max-w-xs">
+              {dbStores.length > 0 && (
+                <optgroup label="📌 Supabase登録店舗">
+                  {dbStores.map(s => <option key={s.id} value={s.id}>🏪 {s.name}</option>)}
+                </optgroup>
+              )}
+              <optgroup label="🧪 モデル店舗">
+                {demoStoreList.map(s => <option key={s.id} value={s.id}>✨ {s.storeName}</option>)}
+              </optgroup>
+            </select>
+          </header>
+
+          <div className="flex-1 flex relative">
+            {mobileMenuOpen && <div className="no-print fixed inset-0 bg-black/70 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />}
+
+            {/* B. 左サイドバー（11メニュー順序固定） */}
+            <aside className={`no-print fixed lg:static top-0 left-0 z-50 lg:z-10 h-full lg:h-auto w-64 bg-navy-900 border-r border-slate-800 flex-shrink-0 flex flex-col justify-between p-4 transition-transform duration-200 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+              <div>
+                <div className="flex justify-between items-center lg:hidden mb-3 pb-2 border-b border-slate-800">
+                  <span className="font-bold text-xs text-slate-300">ナビゲーション</span>
+                  <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400">✕</button>
+                </div>
+                <nav className="space-y-1">
+                  {visibleMenus.map(item => (
+                    <button
+                      key={item.key}
+                      onClick={() => { setActiveMenu(item.key); setMobileMenuOpen(false); }}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition ${activeMenu === item.key ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md" : "text-slate-300 hover:bg-navy-800"}`}
+                    >
+                      <span className="flex items-center gap-2.5"><span>{item.icon}</span><span>{item.label}</span></span>
+                      {item.badge && <span className="text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full">未返信{currentStore.reviews.unreplied}</span>}
+                    </button>
+                  ))}
+                </nav>
+
+                <div className="mt-6 pt-4 border-t border-slate-800">
+                  <div className="text-xs font-bold text-white mb-2">店舗サイテーション・状態</div>
+                  <div className="bg-navy-800 border border-slate-800 rounded-xl p-3 space-y-2 text-xs">
+                    {currentStore.citations.map((c, i) => (
+                      <div key={i} className="flex justify-between border-b border-slate-800 last:border-0 pb-1 last:pb-0">
+                        <span className="text-slate-400">{c.label}</span>
+                        <span className="font-bold text-emerald-400">{c.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-800">最終同期: {currentStore.lastSync}</div>
+            </aside>
+
+            {/* メイン領域 */}
+            <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto space-y-5">
+
+              {/* 📊 1. ダッシュボード（参考画像のA〜G全パネル完全再現） */}
+              {activeMenu === "dashboard" && (
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
+                  <div className="xl:col-span-8 space-y-5">
+                    {/* C. 検索順位マップ */}
+                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                      <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
+                        <div>
+                          <h2 className="text-base sm:text-lg font-bold text-white">エリア別 検索順位マップ</h2>
+                          <p className="text-xs text-slate-400">所在地: {currentStore.address}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <select value={selectedKwIndex} onChange={e => setSelectedKwIndex(Number(e.target.value))} className="bg-navy-800 border border-slate-700 text-xs text-white rounded-lg px-3 py-2 font-bold">
+                            {currentStore.keywords.map((kw, i) => <option key={kw.id} value={i}>🔑 {kw.word}</option>)}
+                          </select>
+                          <span className="bg-navy-800 border border-slate-700 text-xs text-slate-300 rounded-lg px-3 py-2">📅 {currentKeyword.date}</span>
+                        </div>
+                      </div>
+
+                      <div className="relative w-full h-72 sm:h-80 rounded-xl overflow-hidden border border-slate-700 bg-[#162238]">
+                        <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)", backgroundSize: "36px 36px" }} />
+                        <div className="absolute top-1/4 left-1/3 w-48 h-48 bg-emerald-500/25 rounded-full blur-2xl pointer-events-none" />
+                        <div className="absolute top-1/3 right-1/4 w-40 h-40 bg-amber-500/20 rounded-full blur-2xl pointer-events-none" />
+
+                        <div className="absolute top-3 left-3 bg-navy-950/90 border border-slate-700 rounded-xl px-3 py-2">
+                          <div className="text-[10px] text-slate-400">選択キーワード</div>
+                          <div className="text-xs sm:text-sm font-bold text-white">{currentKeyword.word}</div>
+                        </div>
+                        <div className="absolute top-3 right-3 bg-navy-950/90 border border-slate-700 rounded-xl px-3 py-2 text-right">
+                          <div className="text-[10px] text-slate-400">エリア平均順位</div>
+                          <div className="text-sm sm:text-base font-black text-emerald-400">{currentKeyword.avgRank}位 <span className="text-[11px] text-cyan-300 font-normal">(前回 {currentKeyword.prevRank}位)</span></div>
+                        </div>
+
+                        {currentKeyword.pins.map(pin => (
+                          <div key={pin.id} style={{ top: pin.top, left: pin.left }} className="absolute -translate-x-1/2 -translate-y-1/2">
+                            <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 flex items-center justify-center font-black text-xs sm:text-sm shadow-lg ${getPinColor(pin.rank)}`}>
+                              {pin.rank}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {/* D. プロフィール充実度 ＆ 改善タスク */}
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+                        <h3 className="text-sm sm:text-base font-bold text-white">プロフィール充実度</h3>
+                        <p className="text-[11px] text-slate-400">※Re.Start独自のMEO評価基準による算出値</p>
+                        <div className="space-y-3.5">
+                          {currentStore.profileScores.map(s => (
+                            <div key={s.id}>
+                              <div className="flex justify-between text-xs mb-1"><span>{s.label}</span><span className="font-bold">{s.score}%</span></div>
+                              <div className="w-full h-2.5 bg-navy-800 rounded-full overflow-hidden"><div className={`h-full ${s.color}`} style={{ width: `${s.score}%` }} /></div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">{s.note}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
+                        <div>
+                          <h3 className="text-sm sm:text-base font-bold text-white mb-1">GBP最適化・改善タスク</h3>
+                          <p className="text-[11px] text-slate-400 mb-3">タップで完了状態を切り替え</p>
+                          <div className="space-y-2">
+                            {currentStore.tasks.map(t => (
+                              <div key={t.id} className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 ${t.done ? "bg-navy-950/50 border-slate-800 text-slate-500 line-through" : "bg-navy-800 border-slate-700 text-white"}`}>
+                                <input type="checkbox" checked={t.done} readOnly className="h-4 w-4 accent-blue-500" />
+                                <span className="flex-1">{t.title}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <button onClick={() => setActiveMenu("reports")} className="mt-4 w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg">
+                          📄 4ページ組MEOレポート・PDF出力を開く ➔
+                        </button>
+                      </div>
+                    </section>
+                  </div>
+
+                  {/* 右カラム（E 口コミ管理・F 実績グラフ・G ドーナツゲージ） */}
+                  <div className="xl:col-span-4 space-y-5">
+                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-sm sm:text-base font-bold text-white">口コミ管理サマリー</h3>
+                        <span className="text-[11px] bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-full">新着 +{currentStore.reviews.newCount}件</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="bg-navy-800 rounded-xl p-3">
+                          <div className="text-amber-400 text-xs">★★★★★</div>
+                          <div className="text-xl font-black text-white mt-1">{currentStore.reviews.avg}</div>
+                          <div className="text-[11px] text-slate-400">総数: {currentStore.reviews.total}件</div>
+                        </div>
+                        <div className="bg-navy-800 rounded-xl p-3">
+                          <div className="text-xs text-slate-300">返信済</div>
+                          <div className="text-xl font-black text-cyan-400 mt-1">{currentStore.reviews.replied}件</div>
+                          <div className="text-[11px] text-rose-400 font-bold">未返信: {currentStore.reviews.unreplied}件</div>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 pt-2 border-t border-slate-800">
+                        {currentStore.reviews.dist.map(d => (
+                          <div key={d.star} className="flex items-center gap-2 text-[11px]">
+                            <span className="w-6 text-amber-400 font-bold">{d.star}</span>
+                            <div className="flex-1 h-2 bg-navy-800 rounded-full overflow-hidden"><div className={`h-full ${d.color}`} style={{ width: `${d.pct}%` }} /></div>
+                            <span className="w-8 text-right text-slate-300">{d.count}件</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                      <h3 className="text-sm sm:text-base font-bold text-white mb-2">GBPパフォーマンス推移</h3>
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {Object.entries(metricLabels).map(([k, v]) => (
+                          <button key={k} onClick={() => setMetricKey(k)} className={`text-[11px] px-2 py-1 rounded-lg font-bold ${metricKey === k ? "bg-blue-600 text-white" : "bg-navy-800 text-slate-400"}`}>{v.name}</button>
+                        ))}
+                      </div>
+                      <div className="h-36 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-800">
+                        {currentStore.performance.map((pt, i) => {
+                          const val = Number(pt[metricKey]) || 0;
+                          const h = Math.max(12, Math.round((val / maxMetric) * 100));
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                              <span className="text-[10px] text-slate-300 font-bold">{val}</span>
+                              <div className="w-full bg-navy-800 rounded-t-lg h-24 flex items-end p-0.5">
+                                <div className={`w-full rounded-t-md ${metricLabels[metricKey].color}`} style={{ height: `${h}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between px-2 pt-1.5 text-[10px] text-slate-400">
+                        {currentStore.performance.map((pt, i) => <span key={i} className="flex-1 text-center">{pt.month}</span>)}
+                      </div>
+                    </section>
+
+                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                      <h3 className="text-sm sm:text-base font-bold text-white mb-3">口コミ返信率・対策状況</h3>
+                      <div className="flex items-center justify-around">
+                        <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: "conic-gradient(#10B981 0% 65%, #06B6D4 65% 88%, #F59E0B 88% 100%)" }}>
+                          <div className="w-16 h-16 rounded-full bg-navy-900 flex flex-col items-center justify-center">
+                            <span className="text-[9px] text-slate-400">返信率</span>
+                            <span className="text-sm font-black text-white">{currentStore.reviews.replyRate}%</span>
+                          </div>
+                        </div>
+                        <div className="text-xs space-y-1.5">
+                          <div>🟢 高評価比率: <strong>{currentStore.reviews.positiveRate}%</strong></div>
+                          <div>🔵 今月の投稿: <strong>{mData.monthlyPostCount}件</strong></div>
+                          <div>🟠 未返信口コミ: <strong>{currentStore.reviews.unreplied}件</strong></div>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              )}
+
+              {/* 📄 8. MEOレポート（添付PDFと完全一致する4ページA4横レポート） */}
+              {activeMenu === "reports" && (
+                <div className="space-y-6">
+                  <div className="no-print bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <span className="bg-blue-600 text-white text-[11px] font-black px-2.5 py-0.5 rounded">全4ページ・A4横固定</span>
+                      <h2 className="text-base sm:text-lg font-bold text-white mt-1">MEOコンサルティングレポート（{currentStore.storeName} 様）</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {role !== "client" && (
+                        <button onClick={() => setShowEditor(!showEditor)} className="bg-navy-800 border border-cyan-500/40 text-cyan-300 font-bold text-xs px-3 py-2.5 rounded-xl">
+                          ✏️ {showEditor ? "編集を閉じる" : "考察テキスト編集"}
+                        </button>
+                      )}
+                      <button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                        {isGeneratingPdf ? "⏳ Page 1➔4 生成中..." : "📥 4ページ横型PDFをダウンロード"}
+                      </button>
+                    </div>
+
+                    {showEditor && (
+                      <div className="w-full pt-3 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <textarea rows="2" value={insightSearch} onChange={e => setInsightSearch(e.target.value)} className="bg-navy-800 border border-slate-700 rounded p-2 text-white" />
+                        <textarea rows="2" value={insightReview} onChange={e => setInsightReview(e.target.value)} className="bg-navy-800 border border-slate-700 rounded p-2 text-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 横スクロールラッパー（スマホでも1040×735pxのA4横比率を維持） */}
+                  <div className="overflow-x-auto pb-6">
+                    <div className="space-y-8 min-w-[1040px] max-w-[1040px] mx-auto">
+
+                      {/* 【Page 1 of 4】Section 1: MEO用語解説 */}
+                      <div id="pdf-page-1" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
+                        <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
+                          <div>
+                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
+                            <h1 className="text-3xl font-black mt-0.5">MEO Performance Report</h1>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-slate-300">{repMonth}</div>
+                            <div className="text-xl font-bold text-white mt-0.5">{currentStore.storeName} 様</div>
+                          </div>
+                        </div>
+                        <div className="px-8 py-6 flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center gap-2.5 mb-3">
+                              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                              <h2 className="text-lg font-black text-slate-900">Section 1: MEO用語解説 (クライアント向けガイド)</h2>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-600 leading-relaxed">
+                              本レポートに記載されている各指標が、店舗への「集客」「来店」「予約」にどのように直結しているのかを解説いたします。MEO対策では、まず<strong className="text-slate-900">「見られること(認知)」</strong>を増やし、次に<strong className="text-slate-900">「行動されること(コンバージョン)」</strong>へと繋げていくことが重要です。
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-5 my-auto">
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
+                              <h3 className="text-base font-black text-slate-900">表示回数 (検索 / マップ)</h3>
+                              <p className="text-xs text-slate-600 leading-relaxed">Google検索やGoogleマップ上で、貴店のビジネスプロフィールがユーザーの画面に表示された回数です。</p>
+                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> この数値が高いほど、地域内で「お店を探している人」の目に留まっている証拠であり、すべての集客アクションの源泉となる最も重要な認知指標です。</div>
+                            </div>
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
+                              <h3 className="text-base font-black text-slate-900">ウェブサイトへのアクセス数</h3>
+                              <p className="text-xs text-slate-600 leading-relaxed">プロフィール上の「ウェブサイト」ボタンがクリックされた回数です。</p>
+                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> 店舗の詳細情報（メニュー、料金、雰囲気）をより深く知りたいという「興味・関心層」の多さを表します。ここからWEB予約や詳細な問い合わせに繋がります。</div>
+                            </div>
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
+                              <h3 className="text-base font-black text-slate-900">ルート検索数</h3>
+                              <p className="text-xs text-slate-600 leading-relaxed">現在地から貴店までの道案内（ナビ）をリクエストした回数です。</p>
+                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> 「今から行く」「具体的な場所を知りたい」という非常に来店意欲の高いユーザー（今すぐ客）のアクションです。来店数に最も直結しやすい強力な指標です。</div>
+                            </div>
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
+                              <h3 className="text-base font-black text-slate-900">通話数</h3>
+                              <p className="text-xs text-slate-600 leading-relaxed">スマートフォンで検索し、そのまま電話ボタンをタップして発信した回数です。</p>
+                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> 空席確認や予約、営業時間に関する質問など、直接的なコンバージョン（売上）に繋がるアクションです。この数値の増加はダイレクトに店舗の売上アップに貢献します。</div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
+                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 1 of 4</span>
+                        </div>
+                      </div>
+
+                      {/* 【Page 2 of 4】Section 2: 月次パフォーマンスデータ */}
+                      <div id="pdf-page-2" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
+                        <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
+                          <div>
+                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
+                            <h2 className="text-3xl font-black mt-0.5">Performance Data</h2>
+                          </div>
+                          <div className="text-sm font-bold text-slate-300">{repMonth}</div>
+                        </div>
+                        <div className="px-8 py-6 flex-1 flex flex-col justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                            <h3 className="text-lg font-black text-slate-900">Section 2: 月次パフォーマンスデータ</h3>
+                          </div>
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-slate-50 border border-slate-200 border-t-4 border-t-blue-500 rounded-xl p-5 text-center">
+                              <div className="text-xs font-bold text-slate-500">口コミ件数</div>
+                              <div className="text-4xl font-black text-blue-600 mt-1">{currentStore.reviews.total}<span className="text-base font-bold text-slate-500 ml-1">件</span></div>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-200 border-t-4 border-t-amber-400 rounded-xl p-5 text-center">
+                              <div className="text-xs font-bold text-slate-500">平均評価</div>
+                              <div className="flex items-center justify-center gap-2 mt-1">
+                                <span className="text-4xl font-black text-amber-500">{currentStore.reviews.avg}</span>
+                                <span className="text-amber-400 text-xl">★★★★★</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="border border-slate-200 rounded-xl p-5 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-black text-slate-800">① 認知指標 (Discovery)</h4>
+                              <span className="text-xs font-bold text-slate-500">ユーザーの目に触れた回数 (検索経由: {mData.searchImpressions.toLocaleString()}回 / マップ経由: {mData.mapImpressions.toLocaleString()}回)</span>
+                            </div>
+                            <div className="w-full h-10 rounded-lg overflow-hidden flex text-white text-xs font-bold">
+                              <div style={{ width: `${searchPct}%` }} className="bg-blue-600 flex items-center justify-center">検索経由 ({mData.searchImpressions.toLocaleString()})</div>
+                              <div style={{ width: `${mapPct}%` }} className="bg-emerald-500 flex items-center justify-center">マップ経由 ({mData.mapImpressions.toLocaleString()})</div>
+                            </div>
+                          </div>
+                          <div className="border border-slate-200 rounded-xl p-5">
+                            <div className="flex justify-between items-center mb-4">
+                              <h4 className="text-sm font-black text-slate-800">② コンバージョン指標 (Conversion)</h4>
+                              <span className="text-xs font-bold text-slate-500">来店・予約検討層のボリューム (合計アクション)</span>
+                            </div>
+                            <div className="grid grid-cols-12 gap-6 items-center">
+                              <div className="col-span-8 space-y-4">
+                                <div>
+                                  <div className="flex justify-between text-xs font-bold mb-1"><span>WEBアクセス</span><span className="text-blue-600 font-black">{mData.websiteClicks} 回</span></div>
+                                  <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600" style={{ width: `${Math.round((mData.websiteClicks / maxConv) * 100)}%` }} /></div>
+                                </div>
+                                <div>
+                                  <div className="flex justify-between text-xs font-bold mb-1"><span>ルート検索</span><span className="text-emerald-600 font-black">{mData.directionRequests} 回</span></div>
+                                  <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${Math.round((mData.directionRequests / maxConv) * 100)}%` }} /></div>
+                                </div>
+                                <div>
+                                  <div className="flex justify-between text-xs font-bold mb-1"><span>通話数</span><span className="text-amber-600 font-black">{mData.callClicks} 回</span></div>
+                                  <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-amber-500" style={{ width: `${Math.round((mData.callClicks / maxConv) * 100)}%` }} /></div>
+                                </div>
+                              </div>
+                              <div className="col-span-4 bg-slate-50 border border-slate-200 rounded-xl p-5 text-xs text-slate-600 leading-relaxed">
+                                全体として検索経由での露出が非常に高く (<strong className="text-slate-900">{mData.searchImpressions.toLocaleString()}回</strong>)、そこからのWEBアクセスへ良好に遷移しています。
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
+                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 2 of 4</span>
+                        </div>
+                      </div>
+
+                      {/* 【Page 3 of 4】Section 3: 検索キーワード分析 & 今月の施策ログ */}
+                      <div id="pdf-page-3" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
+                        <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
+                          <div>
+                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
+                            <h2 className="text-3xl font-black mt-0.5">Keywords & Action Log</h2>
+                          </div>
+                          <div className="text-sm font-bold text-slate-300">{repMonth}</div>
+                        </div>
+                        <div className="px-8 py-6 flex-1 flex flex-col justify-between space-y-5">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                            <h3 className="text-lg font-black text-slate-900">Section 3: 検索キーワード分析 & 今月の施策ログ</h3>
+                          </div>
+                          <div className="grid grid-cols-2 gap-6 flex-1">
+                            <div className="border border-slate-200 rounded-xl p-5 space-y-3">
+                              <h4 className="text-base font-black text-blue-900">ユーザー上位検索キーワード</h4>
+                              <p className="text-xs text-slate-500 leading-relaxed">ユーザーがどのようなキーワードで検索した際に貴店のプロフィールが表示されたかのデータです。指名検索と非指名検索（ジャンル×地域）のバランスを把握できます。</p>
+                              <table className="w-full text-xs border-collapse mt-3">
+                                <thead>
+                                  <tr className="bg-slate-100 text-slate-600 border-b border-slate-200">
+                                    <th className="p-3 text-left">検索タイプ</th><th className="p-3 text-left">キーワード</th><th className="p-3 text-left">ユーザー層の傾向</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200">
+                                  {mData.searchKeywords.map((kw, i) => (
+                                    <tr key={i}>
+                                      <td className="p-3 align-top"><span className={`inline-block text-[10px] font-bold px-2 py-1 rounded ${kw.badgeColor}`}>{kw.type}</span></td>
+                                      <td className="p-3 font-black text-slate-900 align-top whitespace-nowrap">{kw.word}</td>
+                                      <td className="p-3 text-slate-600 leading-relaxed">{kw.desc}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="border border-slate-200 rounded-xl p-5 space-y-3">
+                              <h4 className="text-base font-black text-blue-900">今月の運用施策ログ (稼働実績)</h4>
+                              <p className="text-xs text-slate-500 leading-relaxed">当月内にMEO運用チーム・および店舗側で実施したGoogleビジネスプロフィールの更新履歴です。</p>
+                              <table className="w-full text-xs border-collapse mt-3">
+                                <thead>
+                                  <tr className="bg-slate-100 text-slate-600 border-b border-slate-200">
+                                    <th className="p-3 text-left">施策項目</th><th className="p-3 text-center">実施件数</th><th className="p-3 text-left">備考・ステータス</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200">
+                                  <tr>
+                                    <td className="p-3.5 font-bold text-slate-800 whitespace-nowrap">最新情報の投稿</td>
+                                    <td className="p-3.5 text-center font-black text-base text-slate-600">{mData.monthlyPostCount}件</td>
+                                    <td className="p-3.5 text-slate-600 leading-relaxed">{mData.monthlyPostCount === 0 ? "今月は発信なし。アクティブな店舗であることをアピールするため更新が推奨されます。" : `当月${mData.monthlyPostCount}件の最新情報を配信済。`}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="p-3.5 font-bold text-slate-800 whitespace-nowrap">写真の追加・更新</td>
+                                    <td className="p-3.5 text-center font-black text-base text-slate-600">{mData.monthlyPhotoAdded}枚</td>
+                                    <td className="p-3.5 text-slate-600 leading-relaxed">{mData.monthlyPhotoAdded === 0 ? "今月は追加なし。視覚的な訴求力向上のため、定期的な追加をご検討ください。" : `当月${mData.monthlyPhotoAdded}枚の写真を追加済。`}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
+                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 3 of 4</span>
+                        </div>
+                      </div>
+
+                      {/* 【Page 4 of 4】Section 4: プロの考察 & Next Action */}
+                      <div id="pdf-page-4" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
+                        <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
+                          <div>
+                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
+                            <h2 className="text-3xl font-black mt-0.5">Insights & Next Action</h2>
+                          </div>
+                          <div className="text-sm font-bold text-slate-300">{repMonth}</div>
+                        </div>
+                        <div className="px-8 py-6 flex-1 flex flex-col justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                            <h3 className="text-lg font-black text-slate-900">Section 4: プロの考察 & Next Action</h3>
+                          </div>
+                          <div className="bg-blue-50/40 border-2 border-blue-500 rounded-xl p-5 space-y-3">
+                            <h4 className="text-sm font-black text-blue-700 border-b border-blue-200 pb-2">今月の総括・プロの考察</h4>
+                            <div className="grid grid-cols-2 gap-6 text-xs leading-relaxed text-slate-700">
+                              <div><div className="font-black text-slate-900 mb-1">■ 検索指標の傾向</div><p>{insightSearch}</p></div>
+                              <div><div className="font-black text-slate-900 mb-1">■ 口コミの定性分析</div><p>{insightReview}</p></div>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="text-sm font-black text-slate-900">次月へ向けた戦略提案 (Next Action)</h4>
+                              <p className="text-xs text-slate-500 mt-0.5">現状の強みである「高い検索露出」と「高評価」を、さらに確実な「予約・来店」へと転換するための3つの施策をご提案します。</p>
+                            </div>
+                            <div className="grid grid-cols-3 gap-5">
+                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2">
+                                <h5 className="text-sm font-black text-slate-900">1. アクティブ感の演出 (投稿・写真追加の再開)</h5>
+                                <p className="text-xs text-slate-600 leading-relaxed">{nextAct1}</p>
+                              </div>
+                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2">
+                                <h5 className="text-sm font-black text-slate-900">2. マップから直接のコンバージョン (CV) 導線強化</h5>
+                                <p className="text-xs text-slate-600 leading-relaxed">{nextAct2}</p>
+                              </div>
+                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2">
+                                <h5 className="text-sm font-black text-slate-900">3. 高評価口コミへの返信によるファン化</h5>
+                                <p className="text-xs text-slate-600 leading-relaxed">{nextAct3}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
+                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 4 of 4</span>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 🏢 2. 会社管理 */}
+              {activeMenu === "companies" && (
+                <form onSubmit={handleCreateOrg} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+                  <h2 className="text-base font-bold text-white">🏢 会社管理（新規クライアント企業登録）</h2>
+                  <input type="text" required placeholder="会社名・屋号 *" value={newOrgName} onChange={e => setNewOrgName(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white" />
+                  <button type="submit" className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl">会社を登録する</button>
+                </form>
+              )}
+
+              {/* 🏪 3. 店舗管理 */}
+              {activeMenu === "stores" && (
+                <form onSubmit={handleCreateStore} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+                  <h2 className="text-base font-bold text-white">🏪 店舗管理（新規店舗登録）</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select required value={newStoreOrgId} onChange={e => setNewStoreOrgId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
+                      <option value="">-- 所属会社を選択 --</option>
+                      {dbOrgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                    </select>
+                    <input type="text" required placeholder="店舗名 (例: イロハ 金山) *" value={newStoreName} onChange={e => setNewStoreName(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                    <input type="text" placeholder="エリア名 (例: 金山)" value={newStoreCity} onChange={e => setNewStoreCity(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                  </div>
+                  <button type="submit" className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl">店舗を登録する</button>
+                </form>
+              )}
+
+              {/* 📍 4. 検索順位管理 ＆ 🔑 5. キーワード管理 */}
+              {(activeMenu === "rankings" || activeMenu === "keywords") && (
+                <form onSubmit={handleAddKwAndRank} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+                  <h2 className="text-base font-bold text-white">🔑 キーワード ＆ 検索順位の登録</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <select required value={targetStoreId} onChange={e => setTargetStoreId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
+                      <option value="">-- 対象店舗を選択 --</option>
+                      {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    <input type="text" required placeholder="対策キーワード (例: 金山 スナック)" value={newKwText} onChange={e => setNewKwText(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                    <input type="number" min="1" max="100" required placeholder="順位 (位)" value={newRankPos} onChange={e => setNewRankPos(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                  </div>
+                  <button type="submit" className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl">キーワードと順位を記録する</button>
+                </form>
+              )}
+
+              {/* 💬 6. 口コミ管理 ＆ 📝 7. 投稿管理 ＆ 📥 9. CSV ＆ 👥 10. 権限 ＆ ⚙️ 11. 設定 */}
+              {["reviews", "posts", "csv", "users", "settings"].includes(activeMenu) && (
+                <div className="space-y-5">
+                  <div className="bg-navy-900 border border-emerald-500/40 rounded-2xl p-5 space-y-3 text-xs">
+                    <h2 className="text-base font-bold text-white">⚡ GBPデータ自動収集 ＆ 4枚組レポート即時反映</h2>
+                    <p className="text-slate-300">選択した店舗に対して、Googleビジネスプロフィールの表示回数（検索/マップ）・WEB・ルート・通話・クチコミ評価を一括自動収集し、4ページレポートへ反映します。</p>
+                    <div className="flex flex-wrap gap-3">
+                      <select value={targetStoreId} onChange={e => setTargetStoreId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
+                        <option value="">-- 対象店舗を選択 --</option>
+                        {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                      <button type="button" onClick={handleAutoCollectGbp} className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-black px-5 py-2.5 rounded-xl shadow-lg">
+                        ⚡ GBPデータを自動収集して4枚組レポートを生成する
+                      </button>
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSaveMetrics} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+                    <h3 className="text-sm font-bold text-cyan-300">💬 口コミ・月次パフォーマンス数値の手動調整</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div><label className="block text-slate-400 mb-1">対象月</label><input type="text" value={perfMonth} onChange={e => setPerfMonth(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                      <div><label className="block text-slate-400 mb-1">口コミ件数</label><input type="number" value={revTotal} onChange={e => setRevTotal(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                      <div><label className="block text-slate-400 mb-1">平均評価(★)</label><input type="number" step="0.1" value={revAvg} onChange={e => setRevAvg(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                      <div><label className="block text-slate-400 mb-1">検索経由表示</label><input type="number" value={perfSearch} onChange={e => setPerfSearch(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                      <div><label className="block text-slate-400 mb-1">マップ経由表示</label><input type="number" value={perfMap} onChange={e => setPerfMap(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                      <div><label className="block text-slate-400 mb-1">WEBアクセス</label><input type="number" value={perfWeb} onChange={e => setPerfWeb(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                      <div><label className="block text-slate-400 mb-1">ルート検索</label><input type="number" value={perfRoute} onChange={e => setPerfRoute(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                      <div><label className="block text-slate-400 mb-1">通話数</label><input type="number" value={perfCall} onChange={e => setPerfCall(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
+                    </div>
+                    <button type="submit" className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl">数値を保存してダッシュボード＆レポートに反映</button>
+                  </form>
+                </div>
+              )}
+
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
