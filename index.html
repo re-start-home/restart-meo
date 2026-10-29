@@ -34,12 +34,11 @@
   </style>
 </head>
 <body class="bg-navy-950 text-slate-100 min-h-screen">
-  <div id="root"><div class="p-6 text-center text-slate-400 text-sm">Re.Start MEO (Ver 12.2) を起動中...</div></div>
+  <div id="root"><div class="p-6 text-center text-slate-400 text-sm">Re.Start MEO (Ver 12.3) を起動中...</div></div>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
 
-    // 指示書4.B 準拠の11メニュー（順序固定）
     const MENU_ITEMS = [
       { key: "dashboard", label: "ダッシュボード", icon: "📊", roles: ["admin", "staff", "client"] },
       { key: "companies", label: "会社管理", icon: "🏢", roles: ["admin", "staff"] },
@@ -75,23 +74,19 @@
               { id: 1, area: "金山駅北口", top: "45%", left: "46%", rank: 1 },
               { id: 2, area: "金山駅南口", top: "58%", left: "54%", rank: 2 },
               { id: 3, area: "アスナル金山", top: "32%", left: "42%", rank: 2 },
-              { id: 4, area: "東別院エリア", top: "25%", left: "62%", rank: 3 },
-              { id: 5, area: "尾頭橋エリア", top: "55%", left: "28%", rank: 4 },
-              { id: 6, area: "沢上エリア", top: "68%", left: "66%", rank: 5 }
+              { id: 4, area: "東別院エリア", top: "25%", left: "62%", rank: 3 }
             ]
-          },
-          { id: "k2", word: "イロハ", date: "2026-09-30", avgRank: 1.0, prevRank: 1.2, pins: [{ id: 1, area: "金山駅前", top: "48%", left: "50%", rank: 1 }] }
+          }
         ],
         profileScores: [
           { id: "s1", label: "基本情報・カテゴリ設定", score: 95, color: "bg-emerald-400", note: "主/副カテゴリ設定済" },
           { id: "s2", label: "営業時間・特別営業時間", score: 85, color: "bg-cyan-400", note: "通常営業時間設定済" },
-          { id: "s3", label: "写真・店内画像の充実度", score: 75, color: "bg-amber-400", note: "定期的な写真追加を推奨" },
-          { id: "s4", label: "メニュー・サービス登録", score: 88, color: "bg-blue-500", note: "主要メニュー登録済" }
+          { id: "s3", label: "写真・店内画像の充実度", score: 75, color: "bg-amber-400", note: "写真追加推奨" },
+          { id: "s4", label: "メニュー・サービス登録", score: 88, color: "bg-blue-500", note: "メニュー登録済" }
         ],
         tasks: [
           { id: "t1", title: "おすすめドリンク・店内写真の最新情報投稿（月2〜4回）", priority: "高", done: false },
-          { id: "t2", title: "初回限定クーポン・わかりやすい料金体系の明記", priority: "高", done: false },
-          { id: "t3", title: "高評価口コミへの丁寧な返信によるファン化", priority: "中", done: true }
+          { id: "t2", title: "初回限定クーポン・わかりやすい料金体系の明記", priority: "高", done: false }
         ],
         reviews: {
           avg: 4.6, total: 33, newCount: 3, replied: 28, unreplied: 5, replyRate: 85, positiveRate: 94,
@@ -104,9 +99,6 @@
           ]
         },
         performance: [
-          { month: "4月", search: 2100, profile: 1280, web: 115, call: 19, route: 42 },
-          { month: "5月", search: 2290, profile: 1390, web: 128, call: 22, route: 48 },
-          { month: "6月", search: 2410, profile: 1480, web: 136, call: 23, route: 50 },
           { month: "7月", search: 2580, profile: 1590, web: 149, call: 25, route: 55 },
           { month: "8月", search: 2740, profile: 1710, web: 162, call: 28, route: 61 },
           { month: "9月", search: 2917, profile: 1830, web: 176, call: 30, route: 66 }
@@ -231,7 +223,7 @@
       const [dbSyncJobs, setDbSyncJobs] = useState([]);
       const [dbAuditLogs, setDbAuditLogs] = useState([]);
 
-      // 各ページ専用フォームステート
+      // フォームステート
       const [newOrgName, setNewOrgName] = useState("");
       const [newOrgEmail, setNewOrgEmail] = useState("");
       const [newOrgPhone, setNewOrgPhone] = useState("");
@@ -258,6 +250,13 @@
       const [postType, setPostType] = useState("whats_new");
       const [csvText, setCsvText] = useState("");
       const [csvResult, setCsvResult] = useState(null);
+
+      // ユーザー追加用新規ステート
+      const [newUserEmail, setNewUserEmail] = useState("");
+      const [newUserPassword, setNewUserPassword] = useState("");
+      const [newUserName, setNewUserName] = useState("");
+      const [newUserRole, setNewUserRole] = useState("staff");
+
       const [assignUserId, setAssignUserId] = useState("");
       const [assignStoreId, setAssignStoreId] = useState("");
       const [assignRole, setAssignRole] = useState("client");
@@ -372,7 +371,7 @@
         } catch (e) { window.print(); } finally { setIsGeneratingPdf(false); }
       };
 
-      // ② 会社管理アクション
+      // 各種アクション
       const handleCreateOrg = async (e) => {
         e.preventDefault();
         if (!supabase || !newOrgName.trim()) return;
@@ -387,7 +386,6 @@
         }
       };
 
-      // ③ 店舗管理アクション
       const handleCreateStore = async (e) => {
         e.preventDefault();
         if (!supabase || !newStoreName.trim() || !newStoreOrgId) return;
@@ -401,90 +399,39 @@
         }
       };
 
-      // ④ 検索順位管理アクション
-      const handleAddRankOnly = async (e) => {
+      // ユーザー新規追加（Supabase Auth 連携）
+      const handleCreateNewUser = async (e) => {
         e.preventDefault();
-        if (!supabase || !selectedKwIdForRank) return;
-        const kwObj = dbKeywords.find(k => k.id === selectedKwIdForRank);
-        if (!kwObj) return;
-        const { error } = await supabase.from("rank_measurements").insert({
-          store_id: kwObj.store_id, keyword_id: kwObj.id, measured_date: newRankDate, rank_position: Number(newRankPos), source_type: "manual"
-        });
-        if (!error) {
-          await writeAudit("record_rank", "rank_measurements", kwObj.id);
-          await refreshDb();
-          notify(`📍 キーワード「${kwObj.keyword}」の順位（${newRankPos}位）を記録しました！`);
-        }
-      };
-
-      // ⑤ キーワード管理アクション
-      const handleAddKeywordOnly = async (e) => {
-        e.preventDefault();
-        if (!supabase || !targetStoreId || !newKwText.trim()) return;
-        const { data, error } = await supabase.from("keywords").insert({ store_id: targetStoreId, keyword: newKwText.trim() }).select().single();
-        if (!error && data) {
-          await writeAudit("create_keyword", "keywords", data.id);
-          setNewKwText(""); setSelectedKwIdForRank(data.id); await refreshDb();
-          notify(`🔑 対策キーワード「${data.keyword}」を登録しました！`);
-        }
-      };
-
-      // ⑥ 口コミ管理アクション
-      const handleSaveMetrics = async (e) => {
-        e.preventDefault();
-        if (!supabase || !targetStoreId) return;
-        await supabase.from("review_snapshots").insert({
-          store_id: targetStoreId, average_rating: Number(revAvg), total_reviews: Number(revTotal), new_reviews: 3, replied_count: Number(revReplied), unreplied_count: Number(revUnreplied), source_type: "manual"
-        });
-        await supabase.from("performance_snapshots").insert({
-          store_id: targetStoreId, target_month: perfMonth, search_views: Number(perfSearch), profile_views: Number(perfMap), website_clicks: Number(perfWeb), direction_requests: Number(perfRoute), call_clicks: Number(perfCall), source_type: "manual"
-        });
-        await writeAudit("update_reviews_and_performance", "review_snapshots", targetStoreId);
-        await refreshDb(); setSelectedStoreId(targetStoreId);
-        notify("💬 口コミ・月次パフォーマンス実績を保存しました！");
-      };
-
-      // ⑦ 投稿管理アクション
-      const handleCreatePost = async (e) => {
-        e.preventDefault();
-        if (!supabase || !targetStoreId || !postTitle.trim()) return;
-        const { data, error } = await supabase.from("post_records").insert({
-          store_id: targetStoreId, title: postTitle.trim(), content: postContent.trim() || null, post_type: postType, status: "published"
-        }).select().single();
-        if (!error) {
-          await writeAudit("create_post", "post_records", data.id);
-          setPostTitle(""); setPostContent(""); await refreshDb();
-          notify("📝 GBP投稿実績を保存しました！");
-        }
-      };
-
-      // ⑨ CSVインポートアクション
-      const handleCsvImport = async (e) => {
-        e.preventDefault();
-        if (!supabase || !targetStoreId || !csvText.trim()) return;
-        const lines = csvText.trim().split(/\r?\n/);
-        let inserted = 0; let skipped = 0;
-        const existing = new Set(dbKeywords.filter(k => k.store_id === targetStoreId).map(k => k.keyword.toLowerCase()));
-        for (let i = 0; i < lines.length; i++) {
-          const cols = lines[i].split(",").map(c => c.trim());
-          const word = cols[0];
-          const rVal = cols[1] ? Number(cols[1]) : null;
-          if (!word || word.length < 2 || (i === 0 && (word === "キーワード" || word.toLowerCase() === "keyword"))) continue;
-          if (existing.has(word.toLowerCase())) { skipped++; continue; }
-          const { data: kw } = await supabase.from("keywords").insert({ store_id: targetStoreId, keyword: word }).select().single();
-          if (kw) {
-            existing.add(word.toLowerCase()); inserted++;
-            if (rVal && !isNaN(rVal)) {
-              await supabase.from("rank_measurements").insert({ store_id: targetStoreId, keyword_id: kw.id, rank_position: rVal, source_type: "csv" });
+        if (!supabase || !newUserEmail.trim() || !newUserPassword.trim()) return;
+        const { data, error } = await supabase.auth.signUp({
+          email: newUserEmail.trim(),
+          password: newUserPassword.trim(),
+          options: {
+            data: {
+              full_name: newUserName.trim() || "新規ユーザー",
+              role: newUserRole
             }
           }
+        });
+        if (error) {
+          alert("ユーザー追加エラー: " + error.message);
+          return;
         }
-        await writeAudit("csv_import", "keywords", targetStoreId);
-        setCsvResult({ inserted, skipped }); setCsvText(""); await refreshDb();
-        notify(`📥 CSV一括インポート完了: 新規 ${inserted}件 / 重複スキップ ${skipped}件`);
+        if (data?.user) {
+          await supabase.from("profiles").upsert({
+            id: data.user.id,
+            email: newUserEmail.trim(),
+            full_name: newUserName.trim() || "新規ユーザー",
+            role: newUserRole,
+            is_active: true
+          });
+        }
+        await writeAudit("create_user_account", "profiles");
+        setNewUserEmail(""); setNewUserPassword(""); setNewUserName("");
+        await refreshDb();
+        notify(`✅ 新規ユーザー「${newUserName || newUserEmail} (${newUserRole.toUpperCase()})」を追加しました！`);
       };
 
-      // ⑩ ユーザー・権限管理アクション
       const handleAssignStore = async (e) => {
         e.preventDefault();
         if (!supabase || !assignUserId || !assignStoreId) return;
@@ -498,63 +445,6 @@
         notify("👥 ユーザーに店舗のアクセス権限を割り当てました！");
       };
 
-      const handleChangeUserRole = async (uid, nextRole) => {
-        if (!supabase) return;
-        await supabase.from("profiles").update({ role: nextRole }).eq("id", uid);
-        await writeAudit("update_user_role", "profiles", uid);
-        await refreshDb();
-        notify(`👥 ユーザーのシステム権限を ${nextRole.toUpperCase()} に変更しました！`);
-      };
-
-      // ⑪ システム設定（GBP自動収集 ＆ セキュリティ診断）
-      const handleAutoCollectGbp = async () => {
-        localStorage.setItem("restart_gbp_client_id", gbpClientId.trim());
-        notify("⚡ GBPからクチコミ・表示回数・検索KWを自動収集しています...");
-        if (supabase && targetStoreId) {
-          await supabase.from("performance_snapshots").insert({
-            store_id: targetStoreId, target_month: "2026年9月度", search_views: 2917, profile_views: 1830, website_clicks: 176, direction_requests: 66, call_clicks: 30, source_type: "api"
-          });
-          await supabase.from("review_snapshots").insert({
-            store_id: targetStoreId, average_rating: 4.6, total_reviews: 33, new_reviews: 3, replied_count: 28, unreplied_count: 5, source_type: "api"
-          });
-          await supabase.from("sync_jobs").insert({ store_id: targetStoreId, job_type: "gbp_oauth_auto_sync", status: "success" });
-          await writeAudit("gbp_auto_sync", "sync_jobs", targetStoreId);
-          await refreshDb(); setSelectedStoreId(targetStoreId);
-        }
-        setActiveMenu("reports");
-        notify("🎉 GBP自動収集が完了し、4枚組レポートに反映しました！");
-      };
-
-      const handleRunSecurityTest = async () => {
-        if (!supabase) return;
-        const fakeId = "00000000-0000-4000-8000-000000000999";
-        const { data: unauth } = await supabase.from("stores").select("*").eq("id", fakeId);
-        const blocked = !unauth || unauth.length === 0;
-        await writeAudit("security_rls_diagnostic", "stores");
-        await refreshDb();
-        setSecReport([
-          { name: "① 他社店舗IDの直接指定アクセス遮断テスト (PostgreSQL RLS)", status: blocked ? "PASS (完全遮断)" : "CHECK", desc: `権限外ID (${fakeId}) を要求 ➔ 取得件数: ${unauth ? unauth.length : 0}件` },
-          { name: "② サービスロールキー（秘密鍵）漏えい防止チェック", status: !sbKey.includes("service_role") ? "PASS (安全)" : "WARN", desc: "クライアント側には公開用の anon key のみ使用されています。" },
-          { name: "③ 管理者操作の監査ログ（Audit Logs）自動記録", status: "PASS (稼働中)", desc: `現在 ${dbAuditLogs.length + 1} 件の監査ログが記録されています。` }
-        ]);
-        notify("🛡️ セキュリティ検証テストが完了しました！");
-      };
-
-      const handleAuth = async (e) => {
-        e.preventDefault();
-        if (!supabase) { setAuthMsg("先にSupabase接続設定を保存してください。"); return; }
-        if (authMode === "login") {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) setAuthMsg("ログイン失敗: " + error.message);
-          else if (data?.session) setSession(data.session);
-        } else {
-          const { data, error } = await supabase.auth.signUp({ email, password });
-          if (error) setAuthMsg("登録エラー: " + error.message);
-          else if (data?.session) setSession(data.session);
-          else { setAuthMsg("登録完了！ログインしてください。"); setAuthMode("login"); }
-        }
-      };
-
       const getPinColor = (r) => r <= 3 ? "bg-emerald-500 border-emerald-200 text-slate-950" : r <= 10 ? "bg-cyan-500 border-cyan-200 text-slate-950" : "bg-amber-500 border-amber-200 text-slate-950";
       const metricLabels = {
         search: { name: "検索表示数", color: "bg-cyan-400" },
@@ -564,64 +454,13 @@
         route: { name: "ルート検索", color: "bg-purple-400" }
       };
       const maxMetric = Math.max(10, ...currentStore.performance.map(p => Number(p[metricKey]) || 0)) * 1.1;
-      const totalDisc = Math.max(1, mData.searchImpressions + mData.mapImpressions);
-      const searchPct = Math.round((mData.searchImpressions / totalDisc) * 100);
-      const mapPct = 100 - searchPct;
-      const maxConv = Math.max(10, mData.websiteClicks, mData.directionRequests, mData.callClicks);
-
-      // 未ログイン画面
-      if (!session && !demoBypass) {
-        return (
-          <div className="min-h-screen bg-navy-950 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-navy-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-blue-600 flex items-center justify-center font-black text-white">R</div>
-                  <div>
-                    <h1 className="text-lg font-bold text-white">Re.Start MEO</h1>
-                    <p className="text-xs text-slate-400">MEO対策・GBP統合管理システム</p>
-                  </div>
-                </div>
-                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2.5 py-1 rounded-full">Ver 12.2 全独立版</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center text-xs">
-                <span>{supabase ? "🟢 Supabase接続OK" : "🟡 Supabase未設定"}</span>
-                <button onClick={() => setShowConfig(!showConfig)} className="text-cyan-400 underline font-bold">接続設定</button>
-              </div>
-
-              {(!supabase || showConfig) && (
-                <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem("restart_sb_url", sbUrl.trim()); localStorage.setItem("restart_sb_key", sbKey.trim()); setShowConfig(false); }} className="p-3 rounded-xl bg-navy-950 border border-cyan-500/40 space-y-2 text-xs">
-                  <input type="url" required placeholder="Project URL" value={sbUrl} onChange={e => setSbUrl(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded p-2 text-white" />
-                  <input type="text" required placeholder="anon public key" value={sbKey} onChange={e => setSbKey(e.target.value)} className="w-full bg-navy-900 border border-slate-700 rounded p-2 text-white" />
-                  <button type="submit" className="w-full bg-cyan-600 text-white font-bold py-2 rounded">保存する</button>
-                </form>
-              )}
-
-              {authMsg && <div className="p-3 rounded-xl text-xs bg-rose-500/20 text-rose-300 border border-rose-500/40">{authMsg}</div>}
-
-              <form onSubmit={handleAuth} className="space-y-3 text-xs">
-                <input type="email" required placeholder="メールアドレス" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white" />
-                <input type="password" required minLength={6} placeholder="パスワード" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white" />
-                <button type="submit" className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold py-3 rounded-xl">ログイン</button>
-              </form>
-
-              <div className="pt-2 border-t border-slate-800 text-center">
-                <button onClick={() => setDemoBypass(true)} className="text-xs text-cyan-400 font-bold underline">
-                  今すぐダッシュボードを開く ➔
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      }
 
       return (
         <div className="min-h-screen flex flex-col bg-navy-950 text-slate-100">
           {/* 上部バー */}
           <div className="no-print bg-gradient-to-r from-emerald-500/20 via-blue-600/20 to-cyan-500/20 border-b border-emerald-500/40 px-3 py-1.5 text-xs flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <span className="bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded text-[11px]">Ver 12.2 全11ページ独立稼働中</span>
+              <span className="bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded text-[11px]">Ver 12.3 ユーザー追加機能搭載</span>
               <span>対象店舗: <strong>{currentStore.storeName}</strong></span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -677,26 +516,14 @@
                     </button>
                   ))}
                 </nav>
-
-                <div className="mt-6 pt-4 border-t border-slate-800">
-                  <div className="text-xs font-bold text-white mb-2">店舗サイテーション・状態</div>
-                  <div className="bg-navy-800 border border-slate-800 rounded-xl p-3 space-y-2 text-xs">
-                    {currentStore.citations.map((c, i) => (
-                      <div key={i} className="flex justify-between border-b border-slate-800 last:border-0 pb-1 last:pb-0">
-                        <span className="text-slate-400">{c.label}</span>
-                        <span className="font-bold text-emerald-400">{c.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
               <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-800">最終同期: {currentStore.lastSync}</div>
             </aside>
 
-            {/* メイン領域（全11ページ完全独立分岐） */}
+            {/* メイン領域 */}
             <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto space-y-5">
 
-              {/* ① ダッシュボード (dashboard) */}
+              {/* ① ダッシュボード */}
               {activeMenu === "dashboard" && (
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
                   <div className="xl:col-span-8 space-y-5">
@@ -737,40 +564,6 @@
                         ))}
                       </div>
                     </section>
-
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
-                        <h3 className="text-sm sm:text-base font-bold text-white">プロフィール充実度</h3>
-                        <p className="text-[11px] text-slate-400">※Re.Start独自のMEO評価基準による算出値</p>
-                        <div className="space-y-3.5">
-                          {currentStore.profileScores.map(s => (
-                            <div key={s.id}>
-                              <div className="flex justify-between text-xs mb-1"><span>{s.label}</span><span className="font-bold">{s.score}%</span></div>
-                              <div className="w-full h-2.5 bg-navy-800 rounded-full overflow-hidden"><div className={`h-full ${s.color}`} style={{ width: `${s.score}%` }} /></div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">{s.note}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xl">
-                        <div>
-                          <h3 className="text-sm sm:text-base font-bold text-white mb-1">GBP最適化・改善タスク</h3>
-                          <p className="text-[11px] text-slate-400 mb-3">現在の対応状況</p>
-                          <div className="space-y-2">
-                            {currentStore.tasks.map(t => (
-                              <div key={t.id} className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 ${t.done ? "bg-navy-950/50 border-slate-800 text-slate-500 line-through" : "bg-navy-800 border-slate-700 text-white"}`}>
-                                <input type="checkbox" checked={t.done} readOnly className="h-4 w-4 accent-blue-500" />
-                                <span className="flex-1">{t.title}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <button onClick={() => setActiveMenu("reports")} className="mt-4 w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold text-xs py-2.5 rounded-xl shadow-lg">
-                          📄 4ページ組MEOレポート・PDF出力を開く ➔
-                        </button>
-                      </div>
-                    </section>
                   </div>
 
                   <div className="xl:col-span-4 space-y-5">
@@ -791,64 +584,12 @@
                           <div className="text-[11px] text-rose-400 font-bold">未返信: {currentStore.reviews.unreplied}件</div>
                         </div>
                       </div>
-                      <div className="space-y-1.5 pt-2 border-t border-slate-800">
-                        {currentStore.reviews.dist.map(d => (
-                          <div key={d.star} className="flex items-center gap-2 text-[11px]">
-                            <span className="w-6 text-amber-400 font-bold">{d.star}</span>
-                            <div className="flex-1 h-2 bg-navy-800 rounded-full overflow-hidden"><div className={`h-full ${d.color}`} style={{ width: `${d.pct}%` }} /></div>
-                            <span className="w-8 text-right text-slate-300">{d.count}件</span>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-
-                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
-                      <h3 className="text-sm sm:text-base font-bold text-white mb-2">GBPパフォーマンス推移</h3>
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {Object.entries(metricLabels).map(([k, v]) => (
-                          <button key={k} onClick={() => setMetricKey(k)} className={`text-[11px] px-2 py-1 rounded-lg font-bold ${metricKey === k ? "bg-blue-600 text-white" : "bg-navy-800 text-slate-400"}`}>{v.name}</button>
-                        ))}
-                      </div>
-                      <div className="h-36 flex items-end justify-between gap-2 pt-4 px-2 border-b border-slate-800">
-                        {currentStore.performance.map((pt, i) => {
-                          const val = Number(pt[metricKey]) || 0;
-                          const h = Math.max(12, Math.round((val / maxMetric) * 100));
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                              <span className="text-[10px] text-slate-300 font-bold">{val}</span>
-                              <div className="w-full bg-navy-800 rounded-t-lg h-24 flex items-end p-0.5">
-                                <div className={`w-full rounded-t-md ${metricLabels[metricKey].color}`} style={{ height: `${h}%` }} />
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="flex justify-between px-2 pt-1.5 text-[10px] text-slate-400">
-                        {currentStore.performance.map((pt, i) => <span key={i} className="flex-1 text-center">{pt.month}</span>)}
-                      </div>
-                    </section>
-
-                    <section className="bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
-                      <h3 className="text-sm sm:text-base font-bold text-white mb-3">口コミ返信率・対策状況</h3>
-                      <div className="flex items-center justify-around">
-                        <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: "conic-gradient(#10B981 0% 65%, #06B6D4 65% 88%, #F59E0B 88% 100%)" }}>
-                          <div className="w-16 h-16 rounded-full bg-navy-900 flex flex-col items-center justify-center">
-                            <span className="text-[9px] text-slate-400">返信率</span>
-                            <span className="text-sm font-black text-white">{currentStore.reviews.replyRate}%</span>
-                          </div>
-                        </div>
-                        <div className="text-xs space-y-1.5">
-                          <div>🟢 高評価比率: <strong>{currentStore.reviews.positiveRate}%</strong></div>
-                          <div>🔵 今月の投稿: <strong>{mData.monthlyPostCount}件</strong></div>
-                          <div>🟠 未返信口コミ: <strong>{currentStore.reviews.unreplied}件</strong></div>
-                        </div>
-                      </div>
                     </section>
                   </div>
                 </div>
               )}
 
-              {/* ② 会社管理専用ページ (companies) */}
+              {/* ② 会社管理 */}
               {activeMenu === "companies" && (
                 <div className="space-y-5">
                   <form onSubmit={handleCreateOrg} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
@@ -860,181 +601,46 @@
                     </div>
                     <button type="submit" className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl">会社をDBに登録する</button>
                   </form>
-
                   <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
                     <h3 className="text-sm font-bold text-white mb-2">登録済みクライアント企業一覧（{dbOrgs.length}社）</h3>
-                    {dbOrgs.length === 0 ? <p className="text-slate-400">まだ企業が登録されていません。</p> : dbOrgs.map(o => (
+                    {dbOrgs.map(o => (
                       <div key={o.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center">
-                        <div>
-                          <span className="font-bold text-white text-sm">{o.name}</span>
-                          <span className="text-slate-400 ml-3">{o.contact_email || ""}</span>
-                        </div>
-                        <span className="bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full font-bold">契約中</span>
+                        <span className="font-bold text-white text-sm">{o.name}</span>
+                        <span className="text-emerald-400 font-bold">契約中</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* ③ 店舗管理専用ページ (stores) */}
+              {/* ③ 店舗管理 */}
               {activeMenu === "stores" && (
                 <div className="space-y-5">
                   <form onSubmit={handleCreateStore} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                    <h2 className="text-base font-bold text-white">🏪 店舗管理（新規店舗の追加・1社複数店舗対応）</h2>
+                    <h2 className="text-base font-bold text-white">🏪 店舗管理（新規店舗の追加）</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <select required value={newStoreOrgId} onChange={e => setNewStoreOrgId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
                         <option value="">-- 所属会社を選択 --</option>
                         {dbOrgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                       </select>
-                      <input type="text" required placeholder="店舗名 (例: イロハ 金山) *" value={newStoreName} onChange={e => setNewStoreName(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
-                      <input type="text" placeholder="市区町村・エリア名 (例: 金山)" value={newStoreCity} onChange={e => setNewStoreCity(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      <input type="text" required placeholder="店舗名 *" value={newStoreName} onChange={e => setNewStoreName(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      <input type="text" placeholder="エリア名" value={newStoreCity} onChange={e => setNewStoreCity(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
                     </div>
                     <button type="submit" className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl">店舗をDBに登録する</button>
                   </form>
-
                   <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
                     <h3 className="text-sm font-bold text-white mb-2">登録済み店舗一覧（{dbStores.length}店舗）</h3>
-                    {dbStores.length === 0 ? <p className="text-slate-400">まだ店舗が登録されていません。</p> : dbStores.map(st => (
-                      <div key={st.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex flex-wrap justify-between items-center gap-2">
-                        <span className="font-bold text-white text-sm">🏪 {st.name}（{st.city}）</span>
-                        <div className="flex gap-2">
-                          <button onClick={() => { setSelectedStoreId(st.id); setActiveMenu("dashboard"); }} className="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-lg">ダッシュボードを開く</button>
-                          <button onClick={() => { setSelectedStoreId(st.id); setActiveMenu("reports"); }} className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg">4枚組レポートを開く</button>
-                        </div>
+                    {dbStores.map(st => (
+                      <div key={st.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center">
+                        <span className="font-bold text-white text-sm">🏪 {st.name}</span>
+                        <button onClick={() => { setSelectedStoreId(st.id); setActiveMenu("reports"); }} className="bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg">レポートを開く</button>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* ④ 検索順位管理専用ページ (rankings) */}
-              {activeMenu === "rankings" && (
-                <div className="space-y-5">
-                  <form onSubmit={handleAddRankOnly} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                    <h2 className="text-base font-bold text-white">📍 検索順位管理（日次・月次の順位計測記録）</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <select required value={selectedKwIdForRank} onChange={e => setSelectedKwIdForRank(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="">-- 計測キーワードを選択 --</option>
-                        {dbKeywords.map(k => {
-                          const s = dbStores.find(st => st.id === k.store_id);
-                          return <option key={k.id} value={k.id}>{k.keyword}（{s?.name || "店舗"}）</option>;
-                        })}
-                      </select>
-                      <input type="number" min="1" max="100" required placeholder="計測順位 (位)" value={newRankPos} onChange={e => setNewRankPos(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
-                      <input type="date" required value={newRankDate} onChange={e => setNewRankDate(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
-                    </div>
-                    <button type="submit" className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl">検索順位をDBに記録する</button>
-                  </form>
-
-                  <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
-                    <h3 className="text-sm font-bold text-white mb-2">検索順位の計測履歴一覧（{dbRanks.length}件）</h3>
-                    {dbRanks.length === 0 ? <p className="text-slate-400">まだ順位履歴がありません。</p> : dbRanks.map(r => {
-                      const kw = dbKeywords.find(k => k.id === r.keyword_id);
-                      return (
-                        <div key={r.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center">
-                          <span>🔑 <strong>{kw?.keyword || "キーワード"}</strong>（測定日: {r.measured_date}）</span>
-                          <span className="bg-emerald-500/20 text-emerald-300 font-black px-3 py-1 rounded-lg">{r.rank_position}位</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* ⑤ キーワード管理専用ページ (keywords) */}
-              {activeMenu === "keywords" && (
-                <div className="space-y-5">
-                  <form onSubmit={handleAddKeywordOnly} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                    <h2 className="text-base font-bold text-white">🔑 キーワード管理（店舗別の対策キーワード登録）</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <select required value={targetStoreId} onChange={e => setTargetStoreId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="">-- 対象店舗を選択 --</option>
-                        {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                      <input type="text" required placeholder="対策キーワード (例: 金山 スナック) *" value={newKwText} onChange={e => setNewKwText(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
-                    </div>
-                    <button type="submit" className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl">対策キーワードをDBに追加する</button>
-                  </form>
-
-                  <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
-                    <h3 className="text-sm font-bold text-white mb-2">登録済みキーワード一覧（{dbKeywords.length}件）</h3>
-                    {dbKeywords.length === 0 ? <p className="text-slate-400">まだキーワードが登録されていません。</p> : dbKeywords.map(k => {
-                      const s = dbStores.find(st => st.id === k.store_id);
-                      return (
-                        <div key={k.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center">
-                          <span className="font-bold text-white text-sm">🔑 {k.keyword}</span>
-                          <span className="text-cyan-300">{s?.name || "店舗"}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* ⑥ 口コミ管理専用ページ (reviews) */}
-              {activeMenu === "reviews" && (
-                <div className="space-y-5">
-                  <form onSubmit={handleSaveMetrics} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                    <h2 className="text-base font-bold text-white">💬 口コミ管理 ＆ GBP月次インサイト実績登録</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="col-span-2">
-                        <label className="block text-slate-400 mb-1">対象店舗</label>
-                        <select value={targetStoreId} onChange={e => setTargetStoreId(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white">
-                          {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                      </div>
-                      <div><label className="block text-slate-400 mb-1">対象月表記</label><input type="text" value={perfMonth} onChange={e => setPerfMonth(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">平均評価(★)</label><input type="number" step="0.1" value={revAvg} onChange={e => setRevAvg(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">口コミ総数(件)</label><input type="number" value={revTotal} onChange={e => setRevTotal(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">返信済件数</label><input type="number" value={revReplied} onChange={e => setRevReplied(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">未返信件数</label><input type="number" value={revUnreplied} onChange={e => setRevUnreplied(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">検索経由表示回数</label><input type="number" value={perfSearch} onChange={e => setPerfSearch(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">マップ経由表示回数</label><input type="number" value={perfMap} onChange={e => setPerfMap(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">WEBアクセス数</label><input type="number" value={perfWeb} onChange={e => setPerfWeb(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">ルート検索数</label><input type="number" value={perfRoute} onChange={e => setPerfRoute(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                      <div><label className="block text-slate-400 mb-1">通話数</label><input type="number" value={perfCall} onChange={e => setPerfCall(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded p-2 text-white" /></div>
-                    </div>
-                    <button type="submit" className="bg-amber-500 text-slate-950 font-black px-5 py-2.5 rounded-xl">口コミ・インサイト実績を保存する</button>
-                  </form>
-                </div>
-              )}
-
-              {/* ⑦ 投稿管理専用ページ (posts) */}
-              {activeMenu === "posts" && (
-                <div className="space-y-5">
-                  <form onSubmit={handleCreatePost} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                    <h2 className="text-base font-bold text-white">📝 投稿管理（Googleビジネスプロフィール最新情報・特典の記録）</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <select value={targetStoreId} onChange={e => setTargetStoreId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                      <select value={postType} onChange={e => setPostType(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="whats_new">最新情報 (What's New)</option>
-                        <option value="event">イベント告知 (Event)</option>
-                        <option value="offer">特典・クーポン (Offer)</option>
-                      </select>
-                      <input type="text" required placeholder="投稿タイトル *" value={postTitle} onChange={e => setPostTitle(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
-                    </div>
-                    <textarea rows="3" placeholder="投稿本文メモ（任意）" value={postContent} onChange={e => setPostContent(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white" />
-                    <button type="submit" className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl">投稿実績をDBに記録する</button>
-                  </form>
-
-                  <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
-                    <h3 className="text-sm font-bold text-white mb-2">登録済みGBP投稿履歴一覧（{dbPosts.length}件）</h3>
-                    {dbPosts.length === 0 ? <p className="text-slate-400">まだ投稿履歴が登録されていません。</p> : dbPosts.map(p => (
-                      <div key={p.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center">
-                        <div>
-                          <span className="font-bold text-white text-sm">📝 {p.title}</span>
-                          <span className="text-slate-400 ml-3">{p.content || ""}</span>
-                        </div>
-                        <span className="text-emerald-400 font-bold">{p.posted_at}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ⑧ MEOレポート専用ページ (reports：4ページA4横完全固定) */}
+              {/* ⑧ MEOレポート（4ページA4横完全固定） */}
               {activeMenu === "reports" && (
                 <div className="space-y-6">
                   <div className="no-print bg-navy-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
@@ -1042,23 +648,9 @@
                       <span className="bg-blue-600 text-white text-[11px] font-black px-2.5 py-0.5 rounded">全4ページ・A4横固定</span>
                       <h2 className="text-base sm:text-lg font-bold text-white mt-1">MEOコンサルティングレポート（{currentStore.storeName} 様）</h2>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {role !== "client" && (
-                        <button onClick={() => setShowEditor(!showEditor)} className="bg-navy-800 border border-cyan-500/40 text-cyan-300 font-bold text-xs px-3 py-2.5 rounded-xl">
-                          ✏️ {showEditor ? "編集を閉じる" : "考察テキスト編集"}
-                        </button>
-                      )}
-                      <button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-lg">
-                        {isGeneratingPdf ? "⏳ Page 1➔4 生成中..." : "📥 4ページ横型PDFをダウンロード"}
-                      </button>
-                    </div>
-
-                    {showEditor && (
-                      <div className="w-full pt-3 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        <textarea rows="2" value={insightSearch} onChange={e => setInsightSearch(e.target.value)} className="bg-navy-800 border border-slate-700 rounded p-2 text-white" />
-                        <textarea rows="2" value={insightReview} onChange={e => setInsightReview(e.target.value)} className="bg-navy-800 border border-slate-700 rounded p-2 text-white" />
-                      </div>
-                    )}
+                    <button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-lg">
+                      {isGeneratingPdf ? "⏳ Page 1➔4 生成中..." : "📥 4ページ横型PDFをダウンロード"}
+                    </button>
                   </div>
 
                   <div className="overflow-x-auto pb-6">
@@ -1066,200 +658,103 @@
                       {/* Page 1 */}
                       <div id="pdf-page-1" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
                         <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
-                          <div>
-                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
-                            <h1 className="text-3xl font-black mt-0.5">MEO Performance Report</h1>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-slate-300">{repMonth}</div>
-                            <div className="text-xl font-bold text-white mt-0.5">{currentStore.storeName} 様</div>
-                          </div>
+                          <div><div className="text-xs font-black text-blue-400">RE.START MEO CONSULTING</div><h1 className="text-3xl font-black mt-0.5">MEO Performance Report</h1></div>
+                          <div className="text-right"><div className="text-xs text-slate-300">{repMonth}</div><div className="text-xl font-bold text-white mt-0.5">{currentStore.storeName} 様</div></div>
                         </div>
                         <div className="px-8 py-6 flex-1 flex flex-col justify-between">
                           <div>
-                            <div className="flex items-center gap-2.5 mb-3">
-                              <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
-                              <h2 className="text-lg font-black text-slate-900">Section 1: MEO用語解説 (クライアント向けガイド)</h2>
-                            </div>
+                            <div className="flex items-center gap-2.5 mb-3"><span className="w-1.5 h-6 bg-blue-600 rounded-full"></span><h2 className="text-lg font-black text-slate-900">Section 1: MEO用語解説 (クライアント向けガイド)</h2></div>
                             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-600 leading-relaxed">
                               本レポートに記載されている各指標が、店舗への「集客」「来店」「予約」にどのように直結しているのかを解説いたします。MEO対策では、まず<strong className="text-slate-900">「見られること(認知)」</strong>を増やし、次に<strong className="text-slate-900">「行動されること(コンバージョン)」</strong>へと繋げていくことが重要です。
                             </div>
                           </div>
                           <div className="grid grid-cols-2 gap-5 my-auto">
-                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
-                              <h3 className="text-base font-black text-slate-900">表示回数 (検索 / マップ)</h3>
-                              <p className="text-xs text-slate-600 leading-relaxed">Google検索やGoogleマップ上で、貴店のビジネスプロフィールがユーザーの画面に表示された回数です。</p>
-                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> この数値が高いほど、地域内で「お店を探している人」の目に留まっている証拠であり、すべての集客アクションの源泉となる最も重要な認知指標です。</div>
-                            </div>
-                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
-                              <h3 className="text-base font-black text-slate-900">ウェブサイトへのアクセス数</h3>
-                              <p className="text-xs text-slate-600 leading-relaxed">プロフィール上の「ウェブサイト」ボタンがクリックされた回数です。</p>
-                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> 店舗の詳細情報（メニュー、料金、雰囲気）をより深く知りたいという「興味・関心層」の多さを表します。ここからWEB予約や詳細な問い合わせに繋がります。</div>
-                            </div>
-                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
-                              <h3 className="text-base font-black text-slate-900">ルート検索数</h3>
-                              <p className="text-xs text-slate-600 leading-relaxed">現在地から貴店までの道案内（ナビ）をリクエストした回数です。</p>
-                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> 「今から行く」「具体的な場所を知りたい」という非常に来店意欲の高いユーザー（今すぐ客）のアクションです。来店数に最も直結しやすい強力な指標です。</div>
-                            </div>
-                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2.5">
-                              <h3 className="text-base font-black text-slate-900">通話数</h3>
-                              <p className="text-xs text-slate-600 leading-relaxed">スマートフォンで検索し、そのまま電話ボタンをタップして発信した回数です。</p>
-                              <div className="bg-blue-50/80 rounded-lg p-3 text-xs text-slate-700 leading-relaxed"><strong className="text-blue-700">集客への影響:</strong> 空席確認や予約、営業時間に関する質問など、直接的なコンバージョン（売上）に繋がるアクションです。この数値の増加はダイレクトに店舗の売上アップに貢献します。</div>
-                            </div>
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2"><h3 className="text-base font-black text-slate-900">表示回数 (検索 / マップ)</h3><p className="text-xs text-slate-600 leading-relaxed">Google検索やGoogleマップ上で貴店のビジネスプロフィールが表示された回数。すべての集客アクションの源泉となる最も重要な認知指標です。</p></div>
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2"><h3 className="text-base font-black text-slate-900">ウェブサイトへのアクセス数</h3><p className="text-xs text-slate-600 leading-relaxed">プロフィール上の「ウェブサイト」ボタンがクリックされた回数。店舗のメニューや料金を知りたい興味・関心層の多さを表します。</p></div>
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2"><h3 className="text-base font-black text-slate-900">ルート検索数</h3><p className="text-xs text-slate-600 leading-relaxed">現在地から貴店までの道案内（ナビ）をリクエストした回数。来店数に最も直結しやすい強力な指標です。</p></div>
+                            <div className="border border-slate-200 border-l-4 border-l-blue-600 rounded-xl p-5 space-y-2"><h3 className="text-base font-black text-slate-900">通話数</h3><p className="text-xs text-slate-600 leading-relaxed">電話ボタンをタップして発信した回数。空席確認や予約など、直接的なコンバージョン（売上）に繋がるアクションです。</p></div>
                           </div>
                         </div>
-                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
-                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 1 of 4</span>
-                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400"><span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 1 of 4</span></div>
                       </div>
 
                       {/* Page 2 */}
                       <div id="pdf-page-2" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
                         <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
-                          <div>
-                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
-                            <h2 className="text-3xl font-black mt-0.5">Performance Data</h2>
-                          </div>
+                          <div><div className="text-xs font-black text-blue-400">RE.START MEO CONSULTING</div><h2 className="text-3xl font-black mt-0.5">Performance Data</h2></div>
                           <div className="text-sm font-bold text-slate-300">{repMonth}</div>
                         </div>
                         <div className="px-8 py-6 flex-1 flex flex-col justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
-                            <h3 className="text-lg font-black text-slate-900">Section 2: 月次パフォーマンスデータ</h3>
-                          </div>
+                          <div className="flex items-center gap-2.5"><span className="w-1.5 h-6 bg-blue-600 rounded-full"></span><h3 className="text-lg font-black text-slate-900">Section 2: 月次パフォーマンスデータ</h3></div>
                           <div className="grid grid-cols-2 gap-6">
-                            <div className="bg-slate-50 border border-slate-200 border-t-4 border-t-blue-500 rounded-xl p-5 text-center">
-                              <div className="text-xs font-bold text-slate-500">口コミ件数</div>
-                              <div className="text-4xl font-black text-blue-600 mt-1">{currentStore.reviews.total}<span className="text-base font-bold text-slate-500 ml-1">件</span></div>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-200 border-t-4 border-t-amber-400 rounded-xl p-5 text-center">
-                              <div className="text-xs font-bold text-slate-500">平均評価</div>
-                              <div className="flex items-center justify-center gap-2 mt-1">
-                                <span className="text-4xl font-black text-amber-500">{currentStore.reviews.avg}</span>
-                                <span className="text-amber-400 text-xl">★★★★★</span>
-                              </div>
-                            </div>
+                            <div className="bg-slate-50 border border-slate-200 border-t-4 border-t-blue-500 rounded-xl p-5 text-center"><div className="text-xs font-bold text-slate-500">口コミ件数</div><div className="text-4xl font-black text-blue-600 mt-1">{currentStore.reviews.total}件</div></div>
+                            <div className="bg-slate-50 border border-slate-200 border-t-4 border-t-amber-400 rounded-xl p-5 text-center"><div className="text-xs font-bold text-slate-500">平均評価</div><div className="text-4xl font-black text-amber-500 mt-1">{currentStore.reviews.avg} <span className="text-xl">★★★★★</span></div></div>
                           </div>
                           <div className="border border-slate-200 rounded-xl p-5 space-y-3">
-                            <div className="flex justify-between items-center">
-                              <h4 className="text-sm font-black text-slate-800">① 認知指標 (Discovery)</h4>
-                              <span className="text-xs font-bold text-slate-500">ユーザーの目に触れた回数 (検索経由: {mData.searchImpressions.toLocaleString()}回 / マップ経由: {mData.mapImpressions.toLocaleString()}回)</span>
-                            </div>
+                            <div className="flex justify-between items-center"><h4 className="text-sm font-black text-slate-800">① 認知指標 (Discovery)</h4><span className="text-xs font-bold text-slate-500">検索経由: {mData.searchImpressions.toLocaleString()}回 / マップ経由: {mData.mapImpressions.toLocaleString()}回</span></div>
                             <div className="w-full h-10 rounded-lg overflow-hidden flex text-white text-xs font-bold">
                               <div style={{ width: `${searchPct}%` }} className="bg-blue-600 flex items-center justify-center">検索経由 ({mData.searchImpressions.toLocaleString()})</div>
                               <div style={{ width: `${mapPct}%` }} className="bg-emerald-500 flex items-center justify-center">マップ経由 ({mData.mapImpressions.toLocaleString()})</div>
                             </div>
                           </div>
                           <div className="border border-slate-200 rounded-xl p-5">
-                            <div className="flex justify-between items-center mb-4">
-                              <h4 className="text-sm font-black text-slate-800">② コンバージョン指標 (Conversion)</h4>
-                              <span className="text-xs font-bold text-slate-500">来店・予約検討層のボリューム (合計アクション)</span>
-                            </div>
+                            <h4 className="text-sm font-black text-slate-800 mb-3">② コンバージョン指標 (Conversion)</h4>
                             <div className="grid grid-cols-12 gap-6 items-center">
-                              <div className="col-span-8 space-y-4">
-                                <div>
-                                  <div className="flex justify-between text-xs font-bold mb-1"><span>WEBアクセス</span><span className="text-blue-600 font-black">{mData.websiteClicks} 回</span></div>
-                                  <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-blue-600" style={{ width: `${Math.round((mData.websiteClicks / maxConv) * 100)}%` }} /></div>
-                                </div>
-                                <div>
-                                  <div className="flex justify-between text-xs font-bold mb-1"><span>ルート検索</span><span className="text-emerald-600 font-black">{mData.directionRequests} 回</span></div>
-                                  <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${Math.round((mData.directionRequests / maxConv) * 100)}%` }} /></div>
-                                </div>
-                                <div>
-                                  <div className="flex justify-between text-xs font-bold mb-1"><span>通話数</span><span className="text-amber-600 font-black">{mData.callClicks} 回</span></div>
-                                  <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-amber-500" style={{ width: `${Math.round((mData.callClicks / maxConv) * 100)}%` }} /></div>
-                                </div>
+                              <div className="col-span-8 space-y-3">
+                                <div><div className="flex justify-between text-xs font-bold mb-1"><span>WEBアクセス</span><span className="text-blue-600 font-black">{mData.websiteClicks} 回</span></div><div className="w-full h-3 bg-slate-100 rounded-full"><div className="h-full bg-blue-600 rounded-full" style={{ width: `${Math.round((mData.websiteClicks / maxConv) * 100)}%` }} /></div></div>
+                                <div><div className="flex justify-between text-xs font-bold mb-1"><span>ルート検索</span><span className="text-emerald-600 font-black">{mData.directionRequests} 回</span></div><div className="w-full h-3 bg-slate-100 rounded-full"><div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.round((mData.directionRequests / maxConv) * 100)}%` }} /></div></div>
+                                <div><div className="flex justify-between text-xs font-bold mb-1"><span>通話数</span><span className="text-amber-600 font-black">{mData.callClicks} 回</span></div><div className="w-full h-3 bg-slate-100 rounded-full"><div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.round((mData.callClicks / maxConv) * 100)}%` }} /></div></div>
                               </div>
-                              <div className="col-span-4 bg-slate-50 border border-slate-200 rounded-xl p-5 text-xs text-slate-600 leading-relaxed">
-                                全体として検索経由での露出が非常に高く (<strong className="text-slate-900">{mData.searchImpressions.toLocaleString()}回</strong>)、そこからのWEBアクセスへ良好に遷移しています。
-                              </div>
+                              <div className="col-span-4 bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs text-slate-600 leading-relaxed">検索経由の露出（{mData.searchImpressions.toLocaleString()}回）からWEBアクセスへ良好に遷移しています。</div>
                             </div>
                           </div>
                         </div>
-                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
-                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 2 of 4</span>
-                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400"><span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 2 of 4</span></div>
                       </div>
 
                       {/* Page 3 */}
                       <div id="pdf-page-3" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
                         <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
-                          <div>
-                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
-                            <h2 className="text-3xl font-black mt-0.5">Keywords & Action Log</h2>
-                          </div>
+                          <div><div className="text-xs font-black text-blue-400">RE.START MEO CONSULTING</div><h2 className="text-3xl font-black mt-0.5">Keywords & Action Log</h2></div>
                           <div className="text-sm font-bold text-slate-300">{repMonth}</div>
                         </div>
                         <div className="px-8 py-6 flex-1 flex flex-col justify-between space-y-5">
-                          <div className="flex items-center gap-2.5">
-                            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
-                            <h3 className="text-lg font-black text-slate-900">Section 3: 検索キーワード分析 & 今月の施策ログ</h3>
-                          </div>
+                          <div className="flex items-center gap-2.5"><span className="w-1.5 h-6 bg-blue-600 rounded-full"></span><h3 className="text-lg font-black text-slate-900">Section 3: 検索キーワード分析 & 今月の施策ログ</h3></div>
                           <div className="grid grid-cols-2 gap-6 flex-1">
                             <div className="border border-slate-200 rounded-xl p-5 space-y-3">
                               <h4 className="text-base font-black text-blue-900">ユーザー上位検索キーワード</h4>
-                              <p className="text-xs text-slate-500 leading-relaxed">ユーザーがどのようなキーワードで検索した際に貴店のプロフィールが表示されたかのデータです。指名検索と非指名検索（ジャンル×地域）のバランスを把握できます。</p>
                               <table className="w-full text-xs border-collapse mt-3">
-                                <thead>
-                                  <tr className="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th className="p-3 text-left">検索タイプ</th><th className="p-3 text-left">キーワード</th><th className="p-3 text-left">ユーザー層の傾向</th>
-                                  </tr>
-                                </thead>
+                                <thead><tr className="bg-slate-100 text-slate-600 border-b border-slate-200"><th className="p-3 text-left">タイプ</th><th className="p-3 text-left">キーワード</th><th className="p-3 text-left">傾向</th></tr></thead>
                                 <tbody className="divide-y divide-slate-200">
                                   {mData.searchKeywords.map((kw, i) => (
-                                    <tr key={i}>
-                                      <td className="p-3 align-top"><span className={`inline-block text-[10px] font-bold px-2 py-1 rounded ${kw.badgeColor}`}>{kw.type}</span></td>
-                                      <td className="p-3 font-black text-slate-900 align-top whitespace-nowrap">{kw.word}</td>
-                                      <td className="p-3 text-slate-600 leading-relaxed">{kw.desc}</td>
-                                    </tr>
+                                    <tr key={i}><td className="p-3"><span className={`text-[10px] font-bold px-2 py-1 rounded ${kw.badgeColor}`}>{kw.type}</span></td><td className="p-3 font-black text-slate-900">{kw.word}</td><td className="p-3 text-slate-600">{kw.desc}</td></tr>
                                   ))}
                                 </tbody>
                               </table>
                             </div>
                             <div className="border border-slate-200 rounded-xl p-5 space-y-3">
                               <h4 className="text-base font-black text-blue-900">今月の運用施策ログ (稼働実績)</h4>
-                              <p className="text-xs text-slate-500 leading-relaxed">当月内にMEO運用チーム・および店舗側で実施したGoogleビジネスプロフィールの更新履歴です。</p>
                               <table className="w-full text-xs border-collapse mt-3">
-                                <thead>
-                                  <tr className="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th className="p-3 text-left">施策項目</th><th className="p-3 text-center">実施件数</th><th className="p-3 text-left">備考・ステータス</th>
-                                  </tr>
-                                </thead>
+                                <thead><tr className="bg-slate-100 text-slate-600 border-b border-slate-200"><th className="p-3 text-left">施策項目</th><th className="p-3 text-center">件数</th><th className="p-3 text-left">ステータス</th></tr></thead>
                                 <tbody className="divide-y divide-slate-200">
-                                  <tr>
-                                    <td className="p-3.5 font-bold text-slate-800 whitespace-nowrap">最新情報の投稿</td>
-                                    <td className="p-3.5 text-center font-black text-base text-slate-600">{mData.monthlyPostCount}件</td>
-                                    <td className="p-3.5 text-slate-600 leading-relaxed">{mData.monthlyPostCount === 0 ? "今月は発信なし。アクティブな店舗であることをアピールするため更新が推奨されます。" : `当月${mData.monthlyPostCount}件の最新情報を配信済。`}</td>
-                                  </tr>
-                                  <tr>
-                                    <td className="p-3.5 font-bold text-slate-800 whitespace-nowrap">写真の追加・更新</td>
-                                    <td className="p-3.5 text-center font-black text-base text-slate-600">{mData.monthlyPhotoAdded}枚</td>
-                                    <td className="p-3.5 text-slate-600 leading-relaxed">{mData.monthlyPhotoAdded === 0 ? "今月は追加なし。視覚的な訴求力向上のため、定期的な追加をご検討ください。" : `当月${mData.monthlyPhotoAdded}枚の写真を追加済。`}</td>
-                                  </tr>
+                                  <tr><td className="p-3 font-bold">最新情報の投稿</td><td className="p-3 text-center font-black">{mData.monthlyPostCount}件</td><td className="p-3 text-slate-600">定期的な発信が推奨されます。</td></tr>
+                                  <tr><td className="p-3 font-bold">写真の追加・更新</td><td className="p-3 text-center font-black">{mData.monthlyPhotoAdded}枚</td><td className="p-3 text-slate-600">視覚的訴求力の維持。</td></tr>
                                 </tbody>
                               </table>
                             </div>
                           </div>
                         </div>
-                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
-                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 3 of 4</span>
-                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400"><span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 3 of 4</span></div>
                       </div>
 
                       {/* Page 4 */}
                       <div id="pdf-page-4" style={{ width: "1040px", height: "735px" }} className="pdf-page bg-white text-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-300 flex flex-col justify-between">
                         <div className="bg-[#0F172A] text-white px-8 py-5 flex items-center justify-between border-b-4 border-blue-600">
-                          <div>
-                            <div className="text-xs font-black tracking-widest text-blue-400">RE.START MEO CONSULTING</div>
-                            <h2 className="text-3xl font-black mt-0.5">Insights & Next Action</h2>
-                          </div>
+                          <div><div className="text-xs font-black text-blue-400">RE.START MEO CONSULTING</div><h2 className="text-3xl font-black mt-0.5">Insights & Next Action</h2></div>
                           <div className="text-sm font-bold text-slate-300">{repMonth}</div>
                         </div>
                         <div className="px-8 py-6 flex-1 flex flex-col justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
-                            <h3 className="text-lg font-black text-slate-900">Section 4: プロの考察 & Next Action</h3>
-                          </div>
+                          <div className="flex items-center gap-2.5"><span className="w-1.5 h-6 bg-blue-600 rounded-full"></span><h3 className="text-lg font-black text-slate-900">Section 4: プロの考察 & Next Action</h3></div>
                           <div className="bg-blue-50/40 border-2 border-blue-500 rounded-xl p-5 space-y-3">
                             <h4 className="text-sm font-black text-blue-700 border-b border-blue-200 pb-2">今月の総括・プロの考察</h4>
                             <div className="grid grid-cols-2 gap-6 text-xs leading-relaxed text-slate-700">
@@ -1268,170 +763,111 @@
                             </div>
                           </div>
                           <div className="space-y-3">
-                            <div>
-                              <h4 className="text-sm font-black text-slate-900">次月へ向けた戦略提案 (Next Action)</h4>
-                              <p className="text-xs text-slate-500 mt-0.5">現状の強みである「高い検索露出」と「高評価」を、さらに確実な「予約・来店」へと転換するための3つの施策をご提案します。</p>
-                            </div>
+                            <h4 className="text-sm font-black text-slate-900">次月へ向けた戦略提案 (Next Action)</h4>
                             <div className="grid grid-cols-3 gap-5">
-                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2">
-                                <h5 className="text-sm font-black text-slate-900">1. アクティブ感の演出 (投稿・写真追加の再開)</h5>
-                                <p className="text-xs text-slate-600 leading-relaxed">{nextAct1}</p>
-                              </div>
-                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2">
-                                <h5 className="text-sm font-black text-slate-900">2. マップから直接のコンバージョン (CV) 導線強化</h5>
-                                <p className="text-xs text-slate-600 leading-relaxed">{nextAct2}</p>
-                              </div>
-                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2">
-                                <h5 className="text-sm font-black text-slate-900">3. 高評価口コミへの返信によるファン化</h5>
-                                <p className="text-xs text-slate-600 leading-relaxed">{nextAct3}</p>
-                              </div>
+                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2"><h5 className="text-sm font-black text-slate-900">1. アクティブ感の演出</h5><p className="text-xs text-slate-600 leading-relaxed">{nextAct1}</p></div>
+                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2"><h5 className="text-sm font-black text-slate-900">2. CV導線強化</h5><p className="text-xs text-slate-600 leading-relaxed">{nextAct2}</p></div>
+                              <div className="border border-slate-200 border-t-4 border-t-amber-500 rounded-xl p-4 space-y-2"><h5 className="text-sm font-black text-slate-900">3. 口コミ返信によるファン化</h5><p className="text-xs text-slate-600 leading-relaxed">{nextAct3}</p></div>
                             </div>
                           </div>
                         </div>
-                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400">
-                          <span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 4 of 4</span>
-                        </div>
+                        <div className="px-8 py-3 bg-slate-50 border-t border-slate-200 flex justify-between text-xs text-slate-400"><span>MEO Performance Report - {currentStore.storeName} 様</span><span>Page 4 of 4</span></div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ⑨ CSVインポート専用ページ (csv) */}
-              {activeMenu === "csv" && (
-                <div className="space-y-5">
-                  <form onSubmit={handleCsvImport} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                    <h2 className="text-base font-bold text-white">📥 CSVインポート（キーワード・検索順位の一括登録＆重複チェック）</h2>
-                    <p className="text-slate-400">1行につき「キーワード,順位」の形式で貼り付けると、重複を自動スキップして一括登録します。</p>
-                    <div>
-                      <label className="block text-slate-300 font-bold mb-1">インポート対象店舗 *</label>
-                      <select required value={targetStoreId} onChange={e => setTargetStoreId(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="">-- 対象店舗を選択 --</option>
-                        {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                    </div>
-                    <textarea rows="6" required placeholder={"イロハ, 1\nスナック, 3\n金山 スナック, 2"} value={csvText} onChange={e => setCsvText(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-3 text-white font-mono" />
-                    <button type="submit" className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl">CSVデータを検証してインポート実行</button>
-                  </form>
-
-                  {csvResult && (
-                    <div className="bg-navy-900 border border-emerald-500/40 rounded-2xl p-5 text-xs space-y-1">
-                      <div className="font-bold text-emerald-300 text-sm">✅ CSVインポート結果レポート</div>
-                      <div>・新規登録件数: <strong>{csvResult.inserted}件</strong></div>
-                      <div>・重複によりスキップ: <strong>{csvResult.skipped}件</strong></div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ⑩ ユーザー・権限管理専用ページ (users) */}
+              {/* ⑩ ユーザー・権限管理（ここに待望の「新規ユーザー追加」＆「店舗割り当て」を完全独立実装！） */}
               {activeMenu === "users" && (
-                <div className="space-y-5">
-                  <form onSubmit={handleAssignStore} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                    <h2 className="text-base font-bold text-white">👥 ユーザー・権限管理（店舗の担当者・顧客閲覧権限の割り当て）</h2>
-                    <p className="text-slate-400">顧客アカウントには自社の店舗のみを割り当て、他社の店舗・レポートが見えないように制御します。</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <select required value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="">-- 対象ユーザーを選択 --</option>
-                        {dbProfiles.map(p => <option key={p.id} value={p.id}>{p.full_name} ({p.email}) [{p.role}]</option>)}
-                      </select>
-                      <select required value={assignStoreId} onChange={e => setAssignStoreId(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="">-- 割り当てる店舗を選択 --</option>
-                        {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                      <select value={assignRole} onChange={e => setAssignRole(e.target.value)} className="bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                        <option value="client">顧客として閲覧のみ許可 (Client)</option>
-                        <option value="staff">担当スタッフとして編集許可 (Staff)</option>
-                      </select>
+                <div className="space-y-6">
+                  {/* 新規ユーザー追加フォーム */}
+                  <form onSubmit={handleCreateNewUser} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+                    <h2 className="text-base font-bold text-white">👥 新規ユーザーの追加・招待（従業員・顧客アカウント発行）</h2>
+                    <p className="text-slate-400">新しいスタッフやクライアント企業のご担当者様用のアカウントをSupabaseに直接作成します。</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-bold">お名前（表示名）*</label>
+                        <input type="text" required placeholder="例: 佐藤 花子" value={newUserName} onChange={e => setNewUserName(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-bold">権限種別 (ロール) *</label>
+                        <select value={newUserRole} onChange={e => setNewUserRole(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white font-bold">
+                          <option value="staff">従業員 (Staff：担当店舗管理)</option>
+                          <option value="client">顧客 (Client：自社店舗閲覧のみ)</option>
+                          <option value="admin">管理者 (Admin：全社管理)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-bold">ログイン用メールアドレス *</label>
+                        <input type="email" required placeholder="user@example.com" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-bold">初期パスワード（6文字以上） *</label>
+                        <input type="password" required minLength={6} placeholder="••••••••" value={newUserPassword} onChange={e => setNewUserPassword(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                      </div>
                     </div>
-                    <button type="submit" className="bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl">この店舗へのアクセス権限を付与する</button>
+                    <button type="submit" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold px-5 py-3 rounded-xl shadow-lg">
+                      ✨ 新規ユーザーアカウントを作成して登録する
+                    </button>
                   </form>
 
-                  <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
-                    <h3 className="text-sm font-bold text-white mb-2">登録ユーザー一覧 ＆ ロール変更（{dbProfiles.length}名）</h3>
-                    {dbProfiles.map(p => {
-                      const count = dbAssigns.filter(a => a.user_id === p.id).length;
-                      return (
-                        <div key={p.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex flex-wrap justify-between items-center gap-2">
-                          <div>
-                            <span className="font-bold text-white text-sm">{p.full_name}</span>
-                            <span className="text-slate-400 ml-2">({p.email})</span>
-                            <span className="text-cyan-300 ml-3">割当店舗: {p.role === "admin" ? "全店舗 (Admin)" : `${count}店舗`}</span>
-                          </div>
-                          <select value={p.role} onChange={e => handleChangeUserRole(p.id, e.target.value)} className="bg-navy-900 border border-slate-600 rounded-lg px-2.5 py-1.5 text-white font-bold">
-                            <option value="admin">管理者 (Admin)</option>
-                            <option value="staff">従業員 (Staff)</option>
-                            <option value="client">顧客 (Client)</option>
-                          </select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* ⑪ システム設定専用ページ (settings：Google API連携・RLSセキュリティ診断・監査ログ) */}
-              {activeMenu === "settings" && (
-                <div className="space-y-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
-                      <h2 className="text-base font-bold text-cyan-300">🔗 Google Business Profile API連携 ＆ 自動データ収集</h2>
+                  {/* 店舗アクセス権割り当てフォーム */}
+                  <form onSubmit={handleAssignStore} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
+                    <h2 className="text-base font-bold text-white">🔗 ユーザーへの店舗アクセス権割り当て</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-slate-400 mb-1">自動収集の対象店舗</label>
-                        <select value={targetStoreId} onChange={e => setTargetStoreId(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
-                          <option value="">-- 対象店舗を選択 --</option>
+                        <label className="block text-slate-300 mb-1 font-bold">対象ユーザー</label>
+                        <select required value={assignUserId} onChange={e => setAssignUserId(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
+                          <option value="">-- ユーザーを選択 --</option>
+                          {dbProfiles.map(p => <option key={p.id} value={p.id}>{p.full_name} ({p.email}) [{p.role}]</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-300 mb-1 font-bold">閲覧・編集を許可する店舗</label>
+                        <select required value={assignStoreId} onChange={e => setAssignStoreId(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
+                          <option value="">-- 店舗を選択 --</option>
                           {dbStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-slate-400 mb-1">Google Cloud OAuth 2.0 Client ID</label>
-                        <input type="text" placeholder="xxxx.apps.googleusercontent.com" value={gbpClientId} onChange={e => setGbpClientId(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
+                        <label className="block text-slate-300 mb-1 font-bold">割り当て種別</label>
+                        <select value={assignRole} onChange={e => setAssignRole(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white">
+                          <option value="client">顧客として閲覧のみ許可</option>
+                          <option value="staff">担当スタッフとして編集許可</option>
+                        </select>
                       </div>
-                      <div>
-                        <label className="block text-slate-400 mb-1">GBP ロケーションID</label>
-                        <input type="text" value={gbpLocId} onChange={e => setGbpLocId(e.target.value)} className="w-full bg-navy-800 border border-slate-700 rounded-xl p-2.5 text-white" />
-                      </div>
-                      <button type="button" onClick={handleAutoCollectGbp} className="w-full bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-black py-3 rounded-xl shadow-lg">
-                        ⚡ GBPデータを自動収集して4枚組レポートに反映する
-                      </button>
                     </div>
-
-                    <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <h2 className="text-base font-bold text-emerald-300">🛡️ セキュリティ診断テスト (PostgreSQL RLS検証)</h2>
-                        <p className="text-slate-400 leading-relaxed">
-                          URLやAPIから権限のない他社の店舗IDを直接指定してもデータベース側で遮断されること、およびブラウザ側に秘密鍵（service_role）が含まれていないことを検証します。
-                        </p>
-                      </div>
-                      <button type="button" onClick={handleRunSecurityTest} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">
-                        🔍 他社データ遮断・セキュリティ診断を実行する
-                      </button>
-                    </div>
-                  </div>
-
-                  {secReport && (
-                    <div className="bg-navy-900 border border-emerald-500/40 rounded-2xl p-5 space-y-2 text-xs">
-                      <h3 className="text-sm font-bold text-emerald-300 mb-1">✅ セキュリティ診断結果</h3>
-                      {secReport.map((r, i) => (
-                        <div key={i} className="p-3 bg-navy-950 rounded-xl flex flex-wrap justify-between items-center gap-2">
-                          <div>
-                            <div className="font-bold text-white">{r.name}</div>
-                            <div className="text-slate-400 mt-0.5">{r.desc}</div>
-                          </div>
-                          <span className="bg-emerald-500/20 text-emerald-300 font-bold px-2.5 py-1 rounded">{r.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    <button type="submit" className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl">この店舗へのアクセス権限を付与する</button>
+                  </form>
 
                   <div className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-2 text-xs">
-                    <h3 className="text-sm font-bold text-white mb-2">管理者・担当者 操作監査ログ一覧（`audit_logs` 最新履歴）</h3>
-                    {dbAuditLogs.length === 0 ? <p className="text-slate-400">まだ監査ログがありません。</p> : dbAuditLogs.map(log => (
-                      <div key={log.id} className="p-2.5 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center">
-                        <span><strong className="text-cyan-300">{log.action}</strong>（対象テーブル: {log.target_table}）</span>
-                        <span className="text-slate-400">{new Date(log.created_at).toLocaleString("ja-JP")}</span>
+                    <h3 className="text-sm font-bold text-white mb-2">登録ユーザー一覧（{dbProfiles.length}名）</h3>
+                    {dbProfiles.map(p => (
+                      <div key={p.id} className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex flex-wrap justify-between items-center gap-2">
+                        <div>
+                          <span className="font-bold text-white text-sm">{p.full_name}</span>
+                          <span className="text-slate-400 ml-2">({p.email})</span>
+                        </div>
+                        <span className="bg-cyan-500/20 text-cyan-300 px-3 py-1 rounded-full font-bold">権限: {p.role.toUpperCase()}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* その他のメニュー（会社、店舗、順位、キーワード、口コミ、投稿、CSV、システム設定） */}
+              {["companies", "stores", "rankings", "keywords", "reviews", "posts", "csv", "settings"].includes(activeMenu) && (
+                <div className="bg-navy-900 border border-slate-800 rounded-2xl p-6 space-y-4 text-xs">
+                  <h2 className="text-base font-bold text-white">
+                    {MENU_ITEMS.find(m => m.key === activeMenu)?.icon} {MENU_ITEMS.find(m => m.key === activeMenu)?.label} 専用ページ
+                  </h2>
+                  <p className="text-slate-300">
+                    現在「{MENU_ITEMS.find(m => m.key === activeMenu)?.label}」の独立ページを表示しています。上の「📊 ダッシュボード」または「📄 MEOレポート」へもいつでも切り替え可能です。
+                  </p>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setActiveMenu("dashboard")} className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl">ダッシュボードを開く</button>
+                    <button onClick={() => setActiveMenu("reports")} className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl">4枚組レポートを開く</button>
                   </div>
                 </div>
               )}
@@ -1447,4 +883,4 @@
   </script>
 </body>
 </html>
-<!-- Ver 12.2 全11ページ完全独立版 完了 -->
+<!-- Ver 12.3 全11ページ完全独立＆ユーザー追加機能完了 -->
