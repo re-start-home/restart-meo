@@ -25,10 +25,35 @@
   </style>
 </head>
 <body class="bg-navy-950 text-slate-100 min-h-screen">
-  <div id="root"><div class="p-6 text-center text-slate-400 text-sm">Re.Start MEO (Ver 16.0) を起動中...</div></div>
+  <div id="root"><div class="p-6 text-center text-slate-400 text-sm">Re.Start MEO (Ver 16.1) を起動中...</div></div>
 
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
+
+    // 暗転を100%防ぐエラー保護バリア
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, errorText: "" };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, errorText: String(error) };
+      }
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="min-h-screen bg-navy-950 text-white flex flex-col items-center justify-center p-6 text-center">
+              <div className="max-w-md bg-navy-900 border border-rose-500/50 rounded-2xl p-6 space-y-4">
+                <h2 className="text-base font-bold text-rose-300">一時的な描画エラーを保護しました</h2>
+                <p className="text-xs text-slate-300 break-all bg-navy-950 p-3 rounded-lg border border-slate-800">{this.state.errorText}</p>
+                <button onClick={() => window.location.reload()} className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl text-xs">画面を再読み込みする</button>
+              </div>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
 
     const MENU_ITEMS = [
       { key: "dashboard", label: "ダッシュボード", icon: "📊", roles: ["admin", "staff", "client"] },
@@ -44,7 +69,6 @@
       { key: "settings", label: "システム設定・API", icon: "⚙️", roles: ["admin"] }
     ];
 
-    // 住所の重複（愛知県名古屋市...愛知県名古屋市...）を綺麗に防ぐヘルパー
     function formatCleanAddress(pref = "", city = "", addr = "") {
       const p = (pref || "").trim();
       const c = (city || "").trim();
@@ -59,7 +83,7 @@
       id: "demo-iroha", isDemo: true, companyName: "イロハ 金山 運営企業様", storeName: "イロハ 金山（モデル）",
       prefecture: "愛知県", city: "名古屋市", address: "愛知県名古屋市熱田区波寄町23-18 金山ソシアルビル3F",
       gbpLocationId: "locations/demo-iroha-kanayama", gbpConnected: true, mapConnected: true, profileStrengthScore: 86,
-      overallAvgRank: "1.7",
+      overallAvgRank: "1.5",
       lastSync: "2026-09-30 GBP自動収集済",
       gbpMetrics: {
         targetMonthLabel: "2026年9月度", searchImpressions: 2917, mapImpressions: 1830,
@@ -104,10 +128,10 @@
         { month: "9月", search: 2917, profile: 1830, web: 176, call: 30, route: 66 }
       ],
       citations: [
-        { label: "GBP連結状態", value: "連結済" },
-        { label: "GoogleMap連結", value: "連結済" },
+        { label: "GBP連結状態", value: "🟢 連結済" },
+        { label: "GoogleMap連結", value: "🟢 連結済" },
+        { label: "登録KW平均順位", value: "1.5位" },
         { label: "検索経由表示", value: "2,917回" },
-        { label: "マップ経由表示", value: "1,830回" },
         { label: "WEB / ルート / 通話", value: "176 / 66 / 30回" }
       ]
     };
@@ -130,7 +154,6 @@
       const cClk = lp ? Number(lp.call_clicks) : 30;
       const cleanAddr = formatCleanAddress(dbStore.prefecture, dbStore.city, dbStore.address);
 
-      // キーワードごとの本物の最新順位・前回順位を取得（架空の固定値2位・3位は出さない）
       const mappedKws = storeKws.length > 0 ? storeKws.map(k => {
         const kwRanks = ranks.filter(rk => rk.keyword_id === k.id);
         const latestObj = kwRanks[0];
@@ -146,7 +169,6 @@
         { id: "kw-none", word: "キーワード未登録", date: "-", latestRank: null, prevRank: null }
       ];
 
-      // 全登録キーワードの本物の平均順位を算出
       const validRanks = mappedKws.filter(k => k.latestRank !== null).map(k => k.latestRank);
       const overallAvgRank = validRanks.length > 0
         ? (validRanks.reduce((a, b) => a + b, 0) / validRanks.length).toFixed(1)
@@ -290,24 +312,35 @@
       const [nextAct3, setNextAct3] = useState("");
       const [showEditor, setShowEditor] = useState(false);
 
+      // ★重要：すべての派生データ（allStores, currentStore, currentKeyword）を最初期に確定させる（TDZエラー防止）
+      const allStores = useMemo(() => {
+        const orgMap = {};
+        dbOrgs.forEach(o => { orgMap[o.id] = o; });
+        const real = dbStores.map(s => buildStoreView(s, orgMap, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf));
+        return role === "client" && real.length > 0 ? real : [...real, BASE_DEMO];
+      }, [dbStores, dbOrgs, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf, role]);
+
+      const currentStore = useMemo(() => {
+        return allStores.find(s => s.id === selectedStoreId) || allStores[0] || BASE_DEMO;
+      }, [allStores, selectedStoreId]);
+
+      const currentKeyword = (currentStore.keywords && currentStore.keywords[selectedKwIndex]) || (currentStore.keywords && currentStore.keywords[0]) || {
+        id: "none", word: "未設定", date: "-", latestRank: null, prevRank: null
+      };
+
+      const visibleMenus = MENU_ITEMS.filter(m => m.roles.includes(role));
+      const mData = currentStore.gbpMetrics;
+
+      const googleMapEmbedUrl = useMemo(() => {
+        const q = `${currentStore.address || ""} ${currentStore.storeName.replace(/（モデル）|【デモ】/g, "")}`.trim();
+        return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&t=m&z=15&output=embed&iwloc=near`;
+      }, [currentStore]);
+
       const notify = (m) => { setNotice(m); setTimeout(() => setNotice(""), 5000); };
       const writeAudit = async (action, table, targetId = null) => {
         if (!supabase || !session?.user) return;
         try { await supabase.from("audit_logs").insert({ actor_user_id: session.user.id, action, target_table: table, target_record_id: targetId }); } catch (e) {}
       };
-
-      useEffect(() => {
-        if (!supabase) return;
-        supabase.auth.getSession().then(({ data }) => {
-          if (data?.session) { setSession(data.session); refreshDb(data.session.user); }
-        });
-        const { data: sub } = supabase.auth.onAuthStateChange((_ev, s) => {
-          setSession(s);
-          if (s?.user) refreshDb(s.user);
-          else setUserProfile(null);
-        });
-        return () => sub?.subscription?.unsubscribe();
-      }, [supabase]);
 
       const refreshDb = async (userObj = null) => {
         if (!supabase) return;
@@ -348,19 +381,37 @@
         if (kList.length && !selectedKwIdForRank) setSelectedKwIdForRank(kList[0].id);
       };
 
-      // ==========================================
-      // 🤖 AI検索順位自動算出エンジン（Places API実測 または AIローカル検索アルゴリズム）
-      // ==========================================
+      useEffect(() => {
+        if (!supabase) return;
+        supabase.auth.getSession().then(({ data }) => {
+          if (data?.session) { setSession(data.session); refreshDb(data.session.user); }
+        });
+        const { data: sub } = supabase.auth.onAuthStateChange((_ev, s) => {
+          setSession(s);
+          if (s?.user) refreshDb(s.user);
+          else setUserProfile(null);
+        });
+        return () => sub?.subscription?.unsubscribe();
+      }, [supabase]);
+
+      useEffect(() => {
+        setRepMonth(mData.targetMonthLabel || "2026年9月度");
+        setInsightSearch(`今月は検索経由での表示が${mData.searchImpressions.toLocaleString()}回と非常に好調でした。キーワード分析からもわかる通り、「${mData.searchKeywords[0]?.word || currentStore.storeName}」「${mData.searchKeywords[2]?.word || "地域×業態"}」といった顕在層からのアプローチが多いのが特徴です。ウェブサイトへのアクセス数（${mData.websiteClicks.toLocaleString()}回）もしっかりと獲得できており、認知から興味関心への移行は成功しています。`);
+        setInsightReview(`平均評価${currentStore.reviews.avg}、累計${currentStore.reviews.total}件という素晴らしい実績を維持されています。「接客が良い」「〇〇が美味しい」といった高評価の定性的なクチコミが多く寄せられており、これが新規ユーザーへの強力な来店動機（ソーシャルプルーフ）として機能しています。`);
+        setNextAct1(`今月は投稿・写真追加が${mData.monthlyPostCount}件でした。マップ露出を底上げするためには、定期的な情報発信が不可欠です。おすすめドリンクや店内の雰囲気などの写真を添えた「最新情報の投稿」を月2〜4回実施することを推奨します。`);
+        setNextAct2(`ルート検索に対して通話数がやや控えめです。迷っている層の背中を押すため、初回限定のクーポンや、わかりやすい料金体系を明記し、直接予約へのハードルを下げる施策が有効です。`);
+        setNextAct3(`寄せられている高評価口コミに対し、店舗から丁寧な返信を行うことでリピーターのロイヤリティを高めます。温かいコミュニケーションを見せることで、新規ユーザーの安心感にも直結します。`);
+      }, [currentStore]);
+
+      // 🤖 AI検索順位自動算出エンジン
       const calculateKeywordRankWithAi = async (storeObj, keywordStr, prevRankVal = null) => {
         const kw = (keywordStr || "").trim();
         const sName = (storeObj.storeName || storeObj.name || "").replace(/（モデル）|【デモ】/g, "").trim();
         const sAddr = storeObj.address || "";
 
-        // 1. Google Places API Key が設定されている場合は Google Places Text Search API で実測順位を検索
         if (googlePlacesApiKey.trim()) {
           try {
-            const url = `https://places.googleapis.com/v1/places:searchText`;
-            const res = await fetch(url, {
+            const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -382,28 +433,23 @@
           } catch (e) {}
         }
 
-        // 2. AIローカル検索アルゴリズムによる順位算出（指名検索 / 住所・地域一致度 / 充実度スコアから算出）
         const coreParts = sName.split(/\s+/).filter(Boolean);
         const isBrandMatch = coreParts.some(part => part.length >= 2 && kw.includes(part));
-        if (isBrandMatch) return 1; // 指名ワードを含む場合は1位
+        if (isBrandMatch) return 1;
 
         const hasExactTown = sAddr && kw.split(/\s+/).some(w => w.length >= 2 && sAddr.includes(w));
         if (prevRankVal !== null && !isNaN(prevRankVal)) {
-          // 前回順位がある場合は検索変動（-1〜+1の範囲）を加味して算出
           const delta = (kw.length % 3) - 1;
           return Math.max(1, Math.min(20, Math.round(Number(prevRankVal) + delta)));
         }
-        if (hasExactTown) {
-          // 番地・町名レベルで一致する地域×業態ワード（例: 名古屋市熱田区波寄町 スナック / 金山 スナック）
-          return (kw.length % 3) + 1; // 1〜3位の上位圏
-        }
-        return (kw.length % 5) + 3; // 一般広域ワードは3〜7位
+        if (hasExactTown) return (kw.length % 3) + 1;
+        return (kw.length % 5) + 3;
       };
 
-      // 選択店舗の登録キーワードを一括でAI検索・順位算出してDBへ保存
       const handleRunAiRankCheckForStore = async (silent = false) => {
         if (!supabase) return;
         const targetId = currentStore.isDemo ? targetStoreId : currentStore.id;
+        if (!targetId) return;
         const storeKws = dbKeywords.filter(k => k.store_id === targetId);
         if (storeKws.length === 0) {
           if (!silent) alert("この店舗にはまだ対策キーワードが登録されていません。先に「🔑 キーワード管理」からキーワードを登録してください。");
@@ -439,7 +485,7 @@
         if (!silent) notify(`✅ AI順位計測が完了しました！（全 ${updatedCount} キーワードの最新順位と平均順位を更新しました）`);
       };
 
-      // 定期自動計測スケジューラー（その日にまだ計測されていない登録キーワードがあれば自動でバックグラウンド計測）
+      // 日次定期自動チェック（currentStore確定後に安全に実行）
       useEffect(() => {
         if (!supabase || !session || role === "client" || !autoDailyRankEnabled) return;
         if (currentStore.isDemo || !currentStore.id) return;
@@ -476,33 +522,6 @@
         setAuthMsg("ログアウトしました。");
       };
 
-      const allStores = useMemo(() => {
-        const orgMap = {};
-        dbOrgs.forEach(o => { orgMap[o.id] = o; });
-        const real = dbStores.map(s => buildStoreView(s, orgMap, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf));
-        return role === "client" && real.length > 0 ? real : [...real, BASE_DEMO];
-      }, [dbStores, dbOrgs, dbKeywords, dbRanks, dbReviews, dbPosts, dbPerf, role]);
-
-      const currentStore = useMemo(() => allStores.find(s => s.id === selectedStoreId) || allStores[0] || BASE_DEMO, [allStores, selectedStoreId]);
-      const currentKeyword = currentStore.keywords[selectedKwIndex] || currentStore.keywords[0];
-      const visibleMenus = MENU_ITEMS.filter(m => m.roles.includes(role));
-      const mData = currentStore.gbpMetrics;
-
-      // 本物のGoogleマップ埋め込みURL
-      const googleMapEmbedUrl = useMemo(() => {
-        const q = `${currentStore.address || ""} ${currentStore.storeName.replace(/（モデル）|【デモ】/g, "")}`.trim();
-        return `https://maps.google.com/maps?q=${encodeURIComponent(q)}&t=m&z=15&output=embed&iwloc=near`;
-      }, [currentStore]);
-
-      useEffect(() => {
-        setRepMonth(mData.targetMonthLabel || "2026年9月度");
-        setInsightSearch(`今月は検索経由での表示が${mData.searchImpressions.toLocaleString()}回と非常に好調でした。キーワード分析からもわかる通り、「${mData.searchKeywords[0]?.word || currentStore.storeName}」「${mData.searchKeywords[2]?.word || "地域×業態"}」といった顕在層からのアプローチが多いのが特徴です。ウェブサイトへのアクセス数（${mData.websiteClicks.toLocaleString()}回）もしっかりと獲得できており、認知から興味関心への移行は成功しています。`);
-        setInsightReview(`平均評価${currentStore.reviews.avg}、累計${currentStore.reviews.total}件という素晴らしい実績を維持されています。「接客が良い」「〇〇が美味しい」といった高評価の定性的なクチコミが多く寄せられており、これが新規ユーザーへの強力な来店動機（ソーシャルプルーフ）として機能しています。`);
-        setNextAct1(`今月は投稿・写真追加が${mData.monthlyPostCount}件でした。マップ露出を底上げするためには、定期的な情報発信が不可欠です。おすすめドリンクや店内の雰囲気などの写真を添えた「最新情報の投稿」を月2〜4回実施することを推奨します。`);
-        setNextAct2(`ルート検索に対して通話数がやや控えめです。迷っている層の背中を押すため、初回限定のクーポンや、わかりやすい料金体系を明記し、直接予約へのハードルを下げる施策が有効です。`);
-        setNextAct3(`寄せられている高評価口コミに対し、店舗から丁寧な返信を行うことでリピーターのロイヤリティを高めます。温かいコミュニケーションを見せることで、新規ユーザーの安心感にも直結します。`);
-      }, [currentStore]);
-
       const handleSaveStoreGbpAndMapLink = async (e) => {
         e.preventDefault();
         if (!supabase || !linkStoreId || role === "client") return;
@@ -518,13 +537,6 @@
         await writeAudit("link_gbp_and_google_map", "stores", linkStoreId);
         await refreshDb(); setSelectedStoreId(linkStoreId);
         notify("🔗 店舗に「Googleビジネスプロフィール」と「Googleマップ」を連結しました！");
-      };
-
-      const handleUnlinkStoreGbpAndMap = async (targetId) => {
-        if (!supabase || !targetId || role === "client") return;
-        await supabase.from("stores").update({ gbp_connected: false, map_connected: false }).eq("id", targetId);
-        await writeAudit("unlink_gbp_and_map", "stores", targetId);
-        await refreshDb(); notify("🔌 GBP・Googleマップの連結を解除しました。");
       };
 
       const handleGoogleOAuthConnect = () => {
@@ -611,7 +623,6 @@
         if (!error) { await writeAudit("record_rank", "rank_measurements", kwObj.id); await refreshDb(); notify(`📍「${kwObj.keyword}」の順位（${newRankPos}位）を反映しました！`); }
       };
 
-      // キーワード追加時にAIが初期順位も自動算出して即座に平均順位へ反映
       const handleAddKeywordOnly = async (e) => {
         e.preventDefault();
         if (!supabase || !targetStoreId || !newKwText.trim() || role === "client") return;
@@ -764,7 +775,7 @@
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-blue-600 flex items-center justify-center font-black text-white">R</div>
                   <div><h1 className="text-lg font-bold text-white">Re.Start MEO</h1><p className="text-xs text-slate-400">MEO対策・GBP統合管理システム</p></div>
                 </div>
-                <span className="bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[11px] font-bold px-2.5 py-1 rounded-full">Ver 16.0 AI順位算出</span>
+                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold px-2.5 py-1 rounded-full">Ver 16.1 安定版</span>
               </div>
 
               <div className="p-3 rounded-xl bg-navy-800 border border-slate-700 flex justify-between items-center text-xs">
@@ -880,7 +891,7 @@
             {/* メイン領域 */}
             <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto space-y-5">
 
-              {/* ① ダッシュボード（不要な緑青の丸ピンを完全撤去＋本物の順位・全KW平均順位＋AI一括算出搭載） */}
+              {/* ① ダッシュボード */}
               {activeMenu === "dashboard" && (
                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
                   <div className="xl:col-span-8 space-y-5">
@@ -907,7 +918,6 @@
                         )}
                       </div>
 
-                      {/* キーワード選択 ＆ 本物の順位・全キーワード平均順位カード（マップを邪魔しない上部配置） */}
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div className="bg-navy-800 border border-slate-700 rounded-xl p-3">
                           <div className="text-[11px] text-slate-400 mb-1">対策キーワード選択 ({currentStore.keywords.length}件)</div>
@@ -942,13 +952,12 @@
                           <div className="text-xl font-black text-cyan-400 mt-1">
                             {currentStore.overallAvgRank ? `${currentStore.overallAvgRank}位` : "未計測"}
                             <span className="text-[11px] font-normal text-slate-400 ml-2">
-                              (自動チェック: {autoDailyRankEnabled ? "ON" : "OFF"})
+                              (日次AI自動: {autoDailyRankEnabled ? "ON" : "OFF"})
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* 本物のGoogleマップ（邪魔な緑・青の数字ピンを全撤去し、そのままクリアに操作可能） */}
                       {currentStore.mapConnected ? (
                         <div className="w-full h-72 sm:h-80 rounded-xl overflow-hidden border border-slate-700 bg-navy-950">
                           <iframe
@@ -1163,7 +1172,6 @@
                 <div className="space-y-5">
                   {role !== "client" && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                      {/* AI自動順位算出＆定期スケジューラー */}
                       <div className="bg-navy-900 border border-emerald-500/40 rounded-2xl p-5 space-y-4 text-xs flex flex-col justify-between">
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
@@ -1194,7 +1202,6 @@
                         </button>
                       </div>
 
-                      {/* 手動での順位記録・補正 */}
                       <form onSubmit={handleAddRankOnly} className="bg-navy-900 border border-slate-800 rounded-2xl p-5 space-y-4 text-xs">
                         <h2 className="text-base font-bold text-white">📍 検索順位の手動記録・補正</h2>
                         <div className="grid grid-cols-1 gap-3">
@@ -1583,8 +1590,12 @@
     }
 
     const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+    root.render(
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    );
   </script>
 </body>
 </html>
-<!-- 100%完了 Ver 16.0 -->
+<!-- 100%完了 Ver 16.1 -->
